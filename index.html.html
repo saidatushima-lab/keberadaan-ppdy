@@ -1,0 +1,2560 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>e-Keberadaan PPD | Dashboard Keberadaan Pegawai</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for beautiful charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (XLSX) for exporting genuine Excel files -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Mengkustomasi scrollbar agar antarmuka terlihat lebih premium */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- HEADER & NAVIGASI -->
+    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo & Judul Aplikasi -->
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white p-2 rounded-lg shadow-inner flex items-center justify-center">
+                        <svg class="h-8 w-8 text-indigo-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-tight leading-none">e-Keberadaan PPD</h1>
+                        <p class="text-xs text-indigo-200">Sistem Pemantauan Status Pegawai Real-Time</p>
+                    </div>
+                </div>
+
+                <!-- Jam Live & Label Keaktifan Sistem -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <div class="text-right">
+                        <p id="live-date" class="text-xs text-indigo-200 font-medium"></p>
+                        <p id="live-time" class="text-sm font-bold text-white"></p>
+                    </div>
+                    <span class="bg-emerald-500 text-white text-xs px-2.5 py-1 rounded-full font-semibold animate-pulse">
+                        <i class="fas fa-circle mr-1"></i> Live Sistem
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- KONTEN UTAMA UTAMA -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- Alert Selamat Datang & Tindakan Cepat -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">Selamat Datang ke Dashboard Keberadaan</h2>
+                <p class="text-sm text-slate-500">Gunakan sistem ini untuk mengemas kini keberadaan harian anda, memantau kehadiran pegawai, atau menjana laporan bercetak daerah.</p>
+            </div>
+            <div class="flex space-x-2 w-full md:w-auto">
+                <button onclick="switchTab('borang')" class="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-150 flex items-center justify-center space-x-2">
+                    <i class="fas fa-edit"></i>
+                    <span>Isi Keberadaan & Profil</span>
+                </button>
+                <button onclick="resetToDefaultData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition duration-150 flex items-center justify-center" title="Reset semula data contoh">
+                    <i class="fas fa-sync-alt"></i> Reset Sistem
+                </button>
+            </div>
+        </div>
+
+        <!-- KARTU INDIKATOR KPI UTAMA -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <!-- Kartu 1: Total Pegawai -->
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between col-span-1">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Jumlah Pegawai</p>
+                    <h3 id="stat-total" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                </div>
+                <div class="bg-indigo-50 p-3 rounded-lg text-indigo-600">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+            </div>
+            <!-- Kartu 2: Hadir Pejabat -->
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between col-span-1">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Hadir Pejabat</p>
+                    <h3 id="stat-hadir" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                </div>
+                <div class="bg-emerald-50 p-3 rounded-lg text-emerald-600">
+                    <i class="fas fa-building text-xl"></i>
+                </div>
+            </div>
+            <!-- Kartu 3: Urusan Rasmi -->
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between col-span-1">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Urusan Rasmi</p>
+                    <h3 id="stat-urusan" class="text-2xl font-bold text-sky-600 mt-1">0</h3>
+                </div>
+                <div class="bg-sky-50 p-3 rounded-lg text-sky-600">
+                    <i class="fas fa-briefcase text-xl"></i>
+                </div>
+            </div>
+            <!-- Kartu 4: Bimbingan -->
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between col-span-1">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Bimbingan</p>
+                    <h3 id="stat-bimbingan" class="text-2xl font-bold text-violet-600 mt-1">0</h3>
+                </div>
+                <div class="bg-violet-50 p-3 rounded-lg text-violet-600">
+                    <i class="fas fa-chalkboard-teacher text-xl"></i>
+                </div>
+            </div>
+            <!-- Kartu 5: Cuti Harian -->
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between col-span-2 lg:col-span-1">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cuti Harian</p>
+                    <h3 id="stat-cuti" class="text-2xl font-bold text-rose-500 mt-1">0</h3>
+                </div>
+                <div class="bg-rose-50 p-3 rounded-lg text-rose-500">
+                    <i class="fas fa-plane-departure text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABS NAVIGASI UTAMA -->
+        <div class="border-b border-slate-200 mb-6">
+            <nav class="flex space-x-6 overflow-x-auto" aria-label="Tabs">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="border-indigo-600 text-indigo-600 border-b-2 py-3 px-1 font-semibold text-sm whitespace-nowrap flex items-center space-x-2">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Analisis & Statistik</span>
+                </button>
+                <button onclick="switchTab('senarai')" id="tab-senarai" class="border-transparent text-slate-500 hover:text-indigo-600 hover:border-indigo-300 border-b-2 py-3 px-1 font-semibold text-sm whitespace-nowrap flex items-center space-x-2">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Senarai Live Pegawai</span>
+                </button>
+                <button onclick="switchTab('kalendar')" id="tab-kalendar" class="border-transparent text-slate-500 hover:text-indigo-600 hover:border-indigo-300 border-b-2 py-3 px-1 font-semibold text-sm whitespace-nowrap flex items-center space-x-2">
+                    <i class="fas fa-calendar-day"></i>
+                    <span>Jadual & Kalendar</span>
+                </button>
+                <button onclick="switchTab('laporan')" id="tab-laporan" class="border-transparent text-slate-500 hover:text-emerald-600 hover:border-emerald-300 border-b-2 py-3 px-1 font-semibold text-sm whitespace-nowrap flex items-center space-x-2">
+                    <i class="fas fa-file-excel text-emerald-600"></i>
+                    <span>Jana Laporan PPD</span>
+                </button>
+                <button onclick="switchTab('borang')" id="tab-borang" class="border-transparent text-slate-500 hover:text-indigo-600 hover:border-indigo-300 border-b-2 py-3 px-1 font-semibold text-sm whitespace-nowrap flex items-center space-x-2">
+                    <i class="fas fa-edit"></i>
+                    <span>Borang Keberadaan & Profil Pentadbir</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- ISI TAB: DASHBOARD (ANALISIS & STATISTIK) -->
+        <div id="content-dashboard" class="tab-content block space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Kolom Kiri: Chart Donut Status Keberadaan Hari Ini -->
+                <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-md font-bold text-slate-800 mb-1">Status Keberadaan Hari Ini</h3>
+                        <p class="text-xs text-slate-400 mb-4">Pecahan status pergerakan semua kakitangan & pegawai.</p>
+                    </div>
+                    <div class="relative w-full h-60 flex items-center justify-center">
+                        <canvas id="chart-presence"></canvas>
+                    </div>
+                    <!-- Legenda Dinamik yang Memaparkan Data Pegawai & Peratusan Sebenar (Dinaik Taraf) -->
+                    <div class="grid grid-cols-2 gap-2 mt-4 text-xs font-medium" id="presence-legend-container">
+                        <!-- Diisi secara dinamis melalui JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Kolom Kanan: Chart Batang Pecahan Sektor -->
+                <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between lg:col-span-2">
+                    <div>
+                        <h3 class="text-md font-bold text-slate-800 mb-1">Pecahan Kehadiran Mengikut Sektor</h3>
+                        <p class="text-xs text-slate-400 mb-4">Analisis jumlah pegawai yang berada di pejabat (Hadir) vs Luar Pejabat (Urusan Rasmi, Bimbingan, Cuti) bagi setiap Sektor.</p>
+                    </div>
+                    <div class="relative w-full h-72">
+                        <canvas id="chart-sectors"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ANALISIS BULANAN -->
+            <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+                    <div>
+                        <h3 class="text-md font-bold text-slate-800 mb-1"><i class="fas fa-chart-line mr-2 text-indigo-600"></i>Analisis Keberadaan Bulanan Pegawai</h3>
+                        <p class="text-xs text-slate-400">Analisis peratusan kehadiran harian dan pergerakan luar pegawai sepanjang tahun 2026.</p>
+                    </div>
+                    <!-- Pilihan Tahun untuk Masa Depan -->
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-semibold text-slate-500">Tahun:</span>
+                        <select id="analysis-year" class="bg-slate-50 border border-slate-200 rounded-lg py-1 px-3 text-xs text-slate-700 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <option value="2026" selected>2026</option>
+                            <option value="2025">2025</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Grafik Garis Bulanan (Chart.js) -->
+                    <div class="lg:col-span-2 relative h-64">
+                        <canvas id="chart-monthly-trend"></canvas>
+                    </div>
+                    <!-- Tabel Ringkasan Prestasi Bulanan -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-150 flex flex-col justify-between">
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">Ringkasan Prestasi Bulanan (Jan - Jun)</h4>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex justify-between items-center py-1.5 border-b border-slate-200">
+                                    <span class="text-slate-500">Bulan Terbaik (Kehadiran Tertinggi):</span>
+                                    <span class="font-bold text-emerald-600" id="best-presence-month">Mac (88%)</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1.5 border-b border-slate-200">
+                                    <span class="text-slate-500">Purata Kehadiran Pejabat:</span>
+                                    <span class="font-bold text-indigo-700" id="avg-presence-rate">83.5%</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1.5 border-b border-slate-200">
+                                    <span class="text-slate-500">Purata Tugas Luar & Bimbingan:</span>
+                                    <span class="font-bold text-sky-600" id="avg-official-rate">9.8%</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1.5">
+                                    <span class="text-slate-500">Purata Cuti Diambil:</span>
+                                    <span class="font-bold text-rose-500" id="avg-leave-rate">6.7%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-slate-200 text-[10px] text-slate-400 italic">
+                            *Data dikira secara automatik berdasarkan gabungan data log keberadaan harian semasa serta data sejarah daerah.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRID INDIKATOR SEKTOR & UNIT -->
+            <div class="pt-2">
+                <h3 class="text-md font-bold text-slate-800 mb-4"><i class="fas fa-university mr-2 text-indigo-600"></i>Pecahan Semasa Mengikut Sektor & Unit PPD</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="sector-cards-container">
+                    <!-- Ditampilkan secara dinamis melalui JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ISI TAB: SENARAI LIVE PEGAWAI -->
+        <div id="content-senarai" class="tab-content hidden">
+            <!-- Filter & Kotak Pencarian -->
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="relative flex-grow">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" id="search-pegawai" oninput="filterPegawai()" placeholder="Cari nama pegawai, jawatan, jenis cuti, lokasi atau catatan..." class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <!-- Filter Sektor -->
+                    <select id="filter-sektor" onchange="filterPegawai()" class="bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="semua">Semua Sektor</option>
+                        <option value="KPPD">KPPD</option>
+                        <option value="Sektor Perancangan">Sektor Perancangan</option>
+                        <option value="Sektor Pembelajaran">Sektor Pembelajaran</option>
+                        <option value="Sektor Pengurusan Sekolah">Sektor Pengurusan Sekolah</option>
+                        <option value="Sektor Pembangunan Murid">Sektor Pembangunan Murid</option>
+                        <option value="Sektor Psikologi dan Kaunseling">Sektor Psikologi & Kaunseling</option>
+                        <option value="Sektor Pengurusan">Sektor Pengurusan</option>
+                        <option value="Sektor Pentaksiran dan Penilaian">Sektor Pentaksiran & Penilaian</option>
+                    </select>
+
+                    <!-- Filter Status -->
+                    <select id="filter-status" onchange="filterPegawai()" class="bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="semua">Semua Status</option>
+                        <option value="Hadir di Pejabat">Hadir di Pejabat</option>
+                        <option value="Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)">Urusan Rasmi</option>
+                        <option value="Bimbingan">Bimbingan</option>
+                        <option value="Cuti">Cuti (Semua Jenis)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- JADUAL UTAMA LIVE -->
+            <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider" id="table-results-count">Menunjukkan semua rekod</span>
+                    <button onclick="exportToCSV()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center space-x-1">
+                        <i class="fas fa-file-export"></i>
+                        <span>Salin CSV Data</span>
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-left">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama & Jawatan</th>
+                                <th scope="col" class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sektor / Unit</th>
+                                <th scope="col" class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status Semasa</th>
+                                <th scope="col" class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tempoh / Lokasi / Sebab</th>
+                                <th scope="col" class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Tindakan (Admin)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-150 bg-white" id="table-pegawai-body">
+                            <!-- Baris tabel dirender lewat JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Tampilan Jika Pencarian Kosong -->
+                <div id="table-empty-state" class="hidden p-12 text-center">
+                    <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-search-minus text-2xl"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-700">Tiada pegawai dijumpai</h3>
+                    <p class="text-xs text-slate-400 mt-1">Sila tukar carian atau penapis untuk mendapatkan hasil yang dikehendaki.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ISI TAB: KALENDAR & JADUAL PERGERAKAN -->
+        <div id="content-kalendar" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Kiri: Penunjuk Kalendar Mock -->
+                <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm h-fit">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-md font-bold text-slate-800">Kalendar Keberadaan</h3>
+                        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md" id="calendar-month-year">Jun 2026</span>
+                    </div>
+                    <!-- Baris Hari Kalendar -->
+                    <div class="grid grid-cols-7 gap-1 text-center text-xs mb-2 font-bold text-slate-400">
+                        <div>AH</div><div>IS</div><div>SE</div><div>RA</div><div>KH</div><div>JU</div><div>SA</div>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 text-center text-xs" id="calendar-grid">
+                        <!-- Tanggal disimulasikan -->
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500 space-y-1">
+                        <p class="font-semibold text-slate-700">Nota Petunjuk Kalendar:</p>
+                        <div class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2"></span> Pegawai Hadir Penuh (>80%)</div>
+                        <div class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-2"></span> Ramai Bertugas Luar / Mesyuarat / Cuti</div>
+                    </div>
+                </div>
+
+                <!-- Kanan: Log Pergerakan Khas Pegawai (Luar Pejabat / Cuti) -->
+                <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm lg:col-span-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="text-md font-bold text-slate-800">Log Pergerakan Khas Pegawai</h3>
+                            <p class="text-xs text-slate-400">Senarai pegawai di luar pejabat (urusan rasmi, bimbingan, atau cuti harian).</p>
+                        </div>
+                        <span class="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full font-semibold" id="out-of-office-count">0 Pegawai</span>
+                    </div>
+                    <div class="space-y-3 max-h-[400px] overflow-y-auto pr-2" id="out-of-office-list">
+                        <!-- Konten pergerakan khas diisi via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ISI TAB: JANA & MUAT TURUN LAPORAN -->
+        <div id="content-laporan" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Panel Pengaturan Filter Laporan (Kiri) -->
+                <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-5 h-fit">
+                    <div class="border-b border-slate-100 pb-3 flex items-center space-x-2 text-emerald-700">
+                        <i class="fas fa-file-invoice text-lg"></i>
+                        <h3 class="text-md font-bold text-slate-800">Konfigurasi Laporan Excel</h3>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Jenis Laporan Dropdown -->
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-bold text-slate-700">Jenis Laporan</label>
+                            <select id="report-type" onchange="toggleReportTypeFields()" class="w-full border border-slate-200 bg-white rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="harian">Laporan Keberadaan Harian (Roster Penuh)</option>
+                                <option value="mingguan">Laporan Mingguan (Log Pergerakan Luar)</option>
+                                <option value="bulanan" selected>Laporan Bulanan (Log Pergerakan Luar)</option>
+                            </select>
+                        </div>
+
+                        <!-- Opsi Dinamis: Harian -->
+                        <div id="report-config-harian" class="hidden space-y-1.5">
+                            <label class="block text-xs font-bold text-slate-700">Pilih Tarikh Laporan</label>
+                            <input type="date" id="report-date-harian" value="2026-06-07" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                        </div>
+
+                        <!-- Opsi Dinamis: Mingguan -->
+                        <div id="report-config-mingguan" class="hidden space-y-1.5">
+                            <label class="block text-xs font-bold text-slate-700">Tarikh Mula</label>
+                            <input type="date" id="report-date-mula" value="2026-06-01" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white mb-2">
+                            <label class="block text-xs font-bold text-slate-700">Tarikh Tamat</label>
+                            <input type="date" id="report-date-tamat" value="2026-06-07" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                        </div>
+
+                        <!-- Opsi Dinamis: Bulanan -->
+                        <div id="report-config-bulanan" class="space-y-1.5">
+                            <label class="block text-xs font-bold text-slate-700">Pilih Bulan & Tahun</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <select id="report-bulan" class="border border-slate-200 bg-white rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <option value="0">Januari</option>
+                                    <option value="1">Februari</option>
+                                    <option value="2">Mac</option>
+                                    <option value="3">April</option>
+                                    <option value="4">Mei</option>
+                                    <option value="5" selected>Jun</option>
+                                    <option value="6">Julai</option>
+                                    <option value="7">Ogos</option>
+                                    <option value="8">September</option>
+                                    <option value="9">Oktober</option>
+                                    <option value="10">November</option>
+                                    <option value="11">Disember</option>
+                                </select>
+                                <select id="report-tahun" class="border border-slate-200 bg-white rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <option value="2025">2025</option>
+                                    <option value="2026" selected>2026</option>
+                                    <option value="2027">2027</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Filter Sektor Laporan -->
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-bold text-slate-700">Penapisan Sektor</label>
+                            <select id="report-sektor" class="w-full border border-slate-200 bg-white rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="semua">Semua Sektor / Unit PPD</option>
+                                <option value="KPPD">KPPD</option>
+                                <option value="Sektor Perancangan">Sektor Perancangan</option>
+                                <option value="Sektor Pembelajaran">Sektor Pembelajaran</option>
+                                <option value="Sektor Pengurusan Sekolah">Sektor Pengurusan Sekolah</option>
+                                <option value="Sektor Pembangunan Murid">Sektor Pembangunan Murid</option>
+                                <option value="Sektor Psikologi dan Kaunseling">Sektor Psikologi & Kaunseling</option>
+                                <option value="Sektor Pengurusan">Sektor Pengurusan</option>
+                                <option value="Sektor Pentaksiran dan Penilaian">Sektor Pentaksiran & Penilaian</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Aksi Penjanaan -->
+                    <div class="pt-4 border-t border-slate-100 flex flex-col gap-2">
+                        <button type="button" onclick="generateReportPreview()" class="w-full bg-slate-800 hover:bg-slate-900 text-white py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow-sm">
+                            <i class="fas fa-search"></i>
+                            <span>Jana Pra-Tonton</span>
+                        </button>
+                        <button type="button" onclick="exportReportToExcel()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-2 shadow-md">
+                            <i class="fas fa-file-excel text-sm"></i>
+                            <span>Muat Turun Fail Excel (.xlsx)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel Pra-Tonton Laporan (Kanan) -->
+                <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                        <div>
+                            <h3 class="text-md font-bold text-slate-800">Pra-Tonton Data Laporan</h3>
+                            <p class="text-xs text-slate-400">Semak rekod di bawah sebelum mengeksport ke fail Excel.</p>
+                        </div>
+                        <span id="preview-count" class="bg-indigo-50 text-indigo-700 text-[11px] font-bold px-2.5 py-1 rounded-full">0 Rekod Pegawai</span>
+                    </div>
+
+                    <!-- Tabel Pra-tonton Dinamis -->
+                    <div class="overflow-x-auto border border-slate-100 rounded-xl">
+                        <table class="min-w-full divide-y divide-slate-150 text-left text-xs">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-3 font-semibold text-slate-500">Bil</th>
+                                    <th class="px-4 py-3 font-semibold text-slate-500">Nama & Jawatan</th>
+                                    <th class="px-4 py-3 font-semibold text-slate-500">Sektor / Unit</th>
+                                    <th class="px-4 py-3 font-semibold text-slate-500">Status Keberadaan</th>
+                                    <th class="px-4 py-3 font-semibold text-slate-500">Lokasi / Kenyataan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-preview-tbody" class="divide-y divide-slate-100 bg-white">
+                                <!-- Konten preview diisi lewat JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="report-preview-empty" class="hidden p-12 text-center">
+                        <div class="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-file text-xl"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-600">Tiada Data Tersedia</h4>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Sila klik "Jana Pra-Tonton" selepas mengkonfigurasi laporan.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ISI TAB: BORANG INPUT KEBERADAAN & PENGURUSAN PROFIL (GRID 2 KOLOM) -->
+        <div id="content-borang" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- KOLOM 1: BORANG KEBERADAAN HARIAN (Col-span-7) -->
+                <div class="lg:col-span-7 bg-white rounded-2xl border-t-8 border-indigo-700 shadow-lg overflow-hidden h-fit">
+                    <div class="p-6 bg-slate-50/50 border-b border-slate-100">
+                        <h2 class="text-2xl font-bold text-slate-800">Borang Keberadaan Harian Pegawai</h2>
+                        <p class="text-xs text-slate-500 mt-1">Sila pilih nama anda dan isi maklumat status pergerakan harian untuk dipaparkan secara langsung pada dashboard utama.</p>
+                        <div class="mt-2 text-xs text-rose-500">* Menandakan soalan yang wajib diisi</div>
+                    </div>
+
+                    <form id="presence-form" onsubmit="handleFormSubmit(event)" class="p-6 space-y-6">
+                        <!-- Dropdown Nama Pegawai -->
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-slate-700">1. Pilih Nama Pegawai <span class="text-rose-500">*</span></label>
+                            <select id="form-nama" required onchange="onOfficerSelect()" class="w-full border border-slate-200 bg-white rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="" disabled selected>-- Pilih Nama Anda --</option>
+                                <!-- Diisi dinamis lewat localStorage -->
+                            </select>
+                        </div>
+
+                        <!-- Kartu Informasi Otomatis Pegawai (Terkunci) -->
+                        <div id="officer-info-card" class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 hidden">
+                            <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider"><i class="fas fa-id-badge mr-1"></i> Profil Pegawai Dikesan</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                <div>
+                                    <span class="text-slate-400">Jawatan:</span>
+                                    <p id="info-jawatan" class="font-bold text-slate-700">-</p>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400">Sektor / Unit:</span>
+                                    <p id="info-sektor" class="font-bold text-slate-700">-</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pilihan Radio Status Keberadaan -->
+                        <div class="space-y-3">
+                            <label class="block text-sm font-semibold text-slate-700">2. Status Keberadaan Hari Ini <span class="text-rose-500">*</span></label>
+                            <div class="space-y-2">
+                                <label class="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                                    <input type="radio" name="form-status" value="Hadir di Pejabat" required checked onchange="toggleFormOutFields()" class="text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                                    <span class="text-sm font-medium text-slate-700">Hadir di Pejabat</span>
+                                </label>
+                                <label class="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                                    <input type="radio" name="form-status" value="Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)" onchange="toggleFormOutFields()" class="text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                                    <span class="text-sm font-medium text-slate-700">Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)</span>
+                                </label>
+                                <label class="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                                    <input type="radio" name="form-status" value="Bimbingan" onchange="toggleFormOutFields()" class="text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                                    <span class="text-sm font-medium text-slate-700">Bimbingan (Bimbingan Sekolah / PBD / Guru)</span>
+                                </label>
+                                <label class="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                                    <input type="radio" name="form-status" value="Cuti" onchange="toggleFormOutFields()" class="text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                                    <span class="text-sm font-medium text-slate-700">Cuti (Sila pilih Jenis Cuti)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Input Detail Kondisional Berdasarkan Pilihan Radio -->
+                        <div id="form-conditional-fields" class="hidden p-4 bg-amber-50/50 rounded-xl border border-amber-200 space-y-4">
+                            <h4 class="text-xs font-bold text-amber-800 uppercase tracking-wider"><i class="fas fa-info-circle mr-1"></i>Maklumat Tambahan Pergerakan / Cuti / Bimbingan</h4>
+                            
+                            <!-- Dropdown Jenis Cuti -->
+                            <div id="jenis-cuti-container" class="hidden space-y-2">
+                                <label class="block text-xs font-semibold text-slate-700">Jenis Cuti <span class="text-rose-500">*</span></label>
+                                <select id="form-jenis-cuti" class="w-full border border-slate-200 bg-white rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="" disabled selected>Pilih Jenis Cuti</option>
+                                    <option value="Cuti Rehat (CR)">Cuti Rehat (CR)</option>
+                                    <option value="Cuti Sakit (MC)">Cuti Sakit (MC)</option>
+                                    <option value="Cuti Ganti">Cuti Ganti</option>
+                                    <option value="Cuti Kuarantin">Cuti Kuarantin</option>
+                                    <option value="Cuti Kelompok">Cuti Kelompok</option>
+                                    <option value="Cuti Rehat Khas (CRK)">Cuti Rehat Khas (CRK)</option>
+                                    <option value="Cuti Bersalin">Cuti Bersalin</option>
+                                    <option value="Cuti Tanpa Rekod (CTR)">Cuti Tanpa Rekod (CTR)</option>
+                                    <option value="Cuti Haji / Umrah">Cuti Haji / Umrah</option>
+                                    <option value="Lain-lain Cuti">Lain-lain Cuti / Pelepasan Khas</option>
+                                </select>
+                            </div>
+
+                            <!-- Input Teks Bebas Lokasi Urusan Rasmi -->
+                            <div id="lokasi-urusan-container" class="hidden space-y-2">
+                                <label class="block text-xs font-semibold text-slate-700">Lokasi Urusan Rasmi <span class="text-rose-500">*</span></label>
+                                <input type="text" id="form-lokasi-urusan" placeholder="Contoh: JPN Kedah, KPM Putrajaya, Hotel Regent, atau lokasi luar daerah" class="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            </div>
+
+                            <!-- Input Lokasi Bimbingan (Multi-sekolah dan Waktu) -->
+                            <div id="lokasi-bimbingan-container" class="hidden space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <label class="block text-xs font-bold text-slate-700">Sekolah / Lokasi Bimbingan (Satu atau lebih) <span class="text-rose-500">*</span></label>
+                                    <button type="button" onclick="clearBimbinganSchools()" id="clear-bimbingan-btn" class="text-[10px] font-bold text-rose-500 hover:text-rose-700 hidden">Padam Semua</button>
+                                </div>
+                                <select id="form-lokasi-bimbingan" onchange="showBimbinganTimeSetter()" class="w-full border border-slate-200 bg-white rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="" disabled selected>-- Pilih Sekolah / Lokasi Bimbingan --</option>
+                                    <optgroup label="Agensi & Organisasi Pentadbiran">
+                                        <option value="Kementerian Pendidikan Malaysia (KPM)">Kementerian Pendidikan Malaysia (KPM)</option>
+                                        <option value="Jabatan Pendidikan Negeri (JPN) Kedah">Jabatan Pendidikan Negeri (JPN) Kedah</option>
+                                        <option value="Pejabat Pendidikan Daerah (PPD) Luar">Pejabat Pendidikan Daerah (PPD) Luar</option>
+                                    </optgroup>
+                                    <optgroup label="Sekolah Menengah (Daerah Yan)">
+                                        <option value="SMK Guar Chempedak">SMK Guar Chempedak</option>
+                                        <option value="SMK Yan">SMK Yan</option>
+                                        <option value="SMK Dulang">SMK Dulang</option>
+                                        <option value="SMK Sungai Limau">SMK Sungai Limau</option>
+                                        <option value="SMK Agama Yan">SMK Agama Yan</option>
+                                        <option value="SMK Jeniang">SMK Jeniang</option>
+                                        <option value="SMK Seri Badong">SMK Seri Badong</option>
+                                    </optgroup>
+                                    <optgroup label="Sekolah Kebangsaan / Rendah (Daerah Yan)">
+                                        <option value="SK Gurun (Pusat)">SK Gurun (Pusat)</option>
+                                        <option value="SK Jeniang (Pusat)">SK Jeniang (Pusat)</option>
+                                        <option value="SK Bedong">SK Bedong</option>
+                                        <option value="SK Ladang Harvard">SK Ladang Harvard</option>
+                                        <option value="SK Sri Jerai">SK Sri Jerai</option>
+                                        <option value="SK Sungai Tok Pawang">SK Sungai Tok Pawang</option>
+                                        <option value="SK Batu Empat">SK Batu Empat</option>
+                                        <option value="SK Guar Chempedak">SK Guar Chempedak</option>
+                                        <option value="SK Padang Lumat">SK Padang Lumat</option>
+                                        <option value="SK Sungai Kering">SK Sungai Kering</option>
+                                        <option value="SK Sungai Limau">SK Sungai Limau</option>
+                                        <option value="SK Haji Kassim Jasin">SK Haji Kassim Jasin</option>
+                                        <option value="SK Ulu Sedaka">SK Ulu Sedaka</option>
+                                        <option value="SK Dulang">SK Dulang</option>
+                                        <option value="SK Singkir">SK Singkir</option>
+                                        <option value="SK Yan Kechil">SK Yan Kechil</option>
+                                        <option value="SK Langkasuka">SK Langkasuka</option>
+                                    </optgroup>
+                                    <optgroup label="Sekolah Jenis Kebangsaan (SJKC / SJKT)">
+                                        <option value="SJK(C) Pei Hwa">SJK(C) Pei Hwa</option>
+                                        <option value="SJK(C) Yuk Min">SJK(C) Yuk Min</option>
+                                        <option value="SJK(C) Yang Kao">SJK(C) Yang Kao</option>
+                                        <option value="SJK(C) York Khoon">SJK(C) York Khoon</option>
+                                        <option value="SJK(T) Bedong">SJK(T) Bedong</option>
+                                        <option value="SJK(T) Harvard Bhg I">SJK(T) Harvard Bhg I</option>
+                                        <option value="SJK(T) Harvard 2">SJK(T) Harvard 2</option>
+                                        <option value="SJK(T) Ladang Harvard Bhg 3">SJK(T) Ladang Harvard Bhg 3</option>
+                                        <option value="SJK(T) Ldg Sungai Bongkok">SJK(T) Ldg Sungai Bongkok</option>
+                                        <option value="SJK(T) Ldg Sungai Puntar">SJK(T) Ldg Sungai Puntar</option>
+                                        <option value="SJK(T) Sungai Tok Pawang">SJK(T) Sungai Tok Pawang</option>
+                                    </optgroup>
+                                    <optgroup label="Lain-lain">
+                                        <option value="Lain-lain Lokasi">Lain-lain Lokasi (Nyatakan di Catatan)</option>
+                                    </optgroup>
+                                </select>
+
+                                <!-- Panel Pengaturan Waktu Tiap Sekolah (Dinamis) -->
+                                <div id="bimbingan-time-setter" class="hidden p-3 bg-indigo-50 border border-indigo-150 rounded-xl space-y-3">
+                                    <p class="text-xs font-bold text-indigo-900">Tetapkan Masa Bimbingan untuk: <span id="bimbingan-selected-school-name" class="underline"></span></p>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-600 mb-1">Masa Mula</label>
+                                            <input type="time" id="bimbingan-time-start" value="08:00" class="w-full border border-slate-200 rounded-lg p-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-600 mb-1">Masa Tamat</label>
+                                            <input type="time" id="bimbingan-time-end" value="10:00" class="w-full border border-slate-200 rounded-lg p-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end space-x-2">
+                                        <button type="button" onclick="cancelBimbinganTimeSetter()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg">Batal</button>
+                                        <button type="button" onclick="confirmAndAddBimbinganSchool()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg">Sahkan & Tambah</button>
+                                    </div>
+                                </div>
+
+                                <!-- Kontainer Lencana (Chips) Sekolah yang Terpilih -->
+                                <div id="bimbingan-chips-container" class="flex flex-wrap gap-1.5 pt-1.5 min-h-[36px] bg-slate-50 p-2 rounded-lg border border-dashed border-slate-200">
+                                    <span class="text-[11px] text-slate-400 italic">Tiada sekolah dipilih. Sila klik dropdown untuk memilih.</span>
+                                </div>
+
+                                <p id="lokasi-catatan-reminder" class="hidden text-[11px] text-amber-700 italic font-medium"><i class="fas fa-exclamation-circle mr-1"></i> Sila nyatakan nama tempat/lokasi penuh anda di dalam ruang Catatan / Kenyataan di bawah.</p>
+                            </div>
+
+                            <!-- Input Tanggal Mulai & Tanggal Selesai -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-semibold text-slate-700">Tarikh Mula <span class="text-rose-500">*</span></label>
+                                    <input type="date" id="form-tarikh-mula" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-semibold text-slate-700">Tarikh Tamat <span class="text-rose-500">*</span></label>
+                                    <input type="date" id="date-label-end" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="block text-xs font-semibold text-slate-700">Tujuan / Catatan / Kenyataan Cuti / Maklumat Lokasi Khusus</label>
+                                <input type="text" id="form-sebab" placeholder="Contoh: Pemantauan Sukan MSSD / Bimbingan PLC Guru Bahasa Inggeris" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            </div>
+                        </div>
+
+                        <!-- Tombol Aksi Kirim -->
+                        <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+                            <button type="button" onclick="clearForm()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 transition duration-150">Reset Borang</button>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-md transition duration-150">Hantar Respons</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- KOLOM 2: REGISTRASI PROFIL BARU & DAFTAR PEGAWAI (Col-span-5) -->
+                <div class="lg:col-span-5 space-y-6">
+                    
+                    <!-- DAFTAR PROFIL PEGAWAI BARU -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                        <div class="border-b border-slate-100 pb-3 flex items-center space-x-2 text-indigo-900">
+                            <i class="fas fa-user-plus text-lg"></i>
+                            <h3 class="text-md font-bold">Daftar Profil Pegawai Baru</h3>
+                        </div>
+                        <p class="text-xs text-slate-400">Gunakan ruangan ini sekiranya anda merupakan kakitangan baharu PPD yang belum berdaftar di dalam sistem.</p>
+                        
+                        <form id="profile-registration-form" onsubmit="handleProfileSubmit(event)" class="space-y-4">
+                            <!-- Nama Lengkap Pegawai Baru -->
+                            <div class="space-y-1">
+                                <label class="block text-xs font-semibold text-slate-700">Nama Penuh Pegawai</label>
+                                <input type="text" id="input-profile-nama" required placeholder="Contoh: Encik Shahrul bin Kassim" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <!-- Jabatan Pegawai Baru -->
+                            <div class="space-y-1">
+                                <label class="block text-xs font-semibold text-slate-700">Jawatan</label>
+                                <input type="text" id="input-profile-jawatan" required placeholder="Contoh: Penolong PPD Matematik" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <!-- Sektor Baru -->
+                            <div class="space-y-1">
+                                <label class="block text-xs font-semibold text-slate-700">Sektor / Unit</label>
+                                <select id="input-profile-sektor" required class="w-full border border-slate-200 bg-white rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="" disabled selected>Pilih Sektor</option>
+                                    <option value="KPPD">KPPD</option>
+                                    <option value="Sektor Perancangan">Sektor Perancangan</option>
+                                    <option value="Sektor Pembelajaran">Sektor Pembelajaran</option>
+                                    <option value="Sektor Pengurusan Sekolah">Sektor Pengurusan Sekolah</option>
+                                    <option value="Sektor Pembangunan Murid">Sektor Pembangunan Murid</option>
+                                    <option value="Sektor Psikologi dan Kaunseling">Sektor Psikologi dan Kaunseling</option>
+                                    <option value="Sektor Pengurusan">Sektor Pengurusan</option>
+                                    <option value="Sektor Pentaksiran dan Penilaian">Sektor Pentaksiran dan Penilaian</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-xs font-bold transition shadow-sm">
+                                <i class="fas fa-save mr-1"></i> Simpan Profil Pegawai
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- DIREKTORI PROFIL PEGAWAI (KONTROL ADMIN) -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                        <div class="border-b border-slate-100 pb-3 flex items-center justify-between text-rose-800">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-users-cog text-lg"></i>
+                                <h3 class="text-md font-bold">Urus Direktori Profil Pegawai</h3>
+                            </div>
+                            <span class="text-[9px] bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded border border-rose-200">Admin Sahaja</span>
+                        </div>
+                        <p class="text-xs text-slate-400">Sunting atau padam nama pegawai yang bersara, berpindah atau bertukar jawatan daripada sistem Yan.</p>
+                        
+                        <!-- Cari Profil -->
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400 text-xs">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" id="search-directory" oninput="filterDirectory()" placeholder="Cari profil..." class="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        </div>
+
+                        <!-- Daftar Profil Pegawai (Scrollable) -->
+                        <div class="space-y-2 max-h-[220px] overflow-y-auto pr-1" id="profile-directory-list">
+                            <!-- Diisi dinamis via JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL SUNTING PROFIL PEGAWAI (FITUR BARU - POPUP KHAS) -->
+    <div id="edit-profile-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-slate-900 opacity-75"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-indigo-600 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-user-edit text-lg"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-md leading-6 font-bold text-slate-900">Sunting Profil Pegawai</h3>
+                            <div class="mt-4 space-y-4">
+                                <input type="hidden" id="edit-profile-id">
+                                
+                                <div class="space-y-1 text-left">
+                                    <label class="block text-xs font-semibold text-slate-700">Nama Penuh Pegawai</label>
+                                    <input type="text" id="edit-profile-nama" class="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                
+                                <div class="space-y-1 text-left">
+                                    <label class="block text-xs font-semibold text-slate-700">Jawatan</label>
+                                    <input type="text" id="edit-profile-jawatan" class="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                
+                                <div class="space-y-1 text-left">
+                                    <label class="block text-xs font-semibold text-slate-700">Sektor / Unit</label>
+                                    <select id="edit-profile-sektor" class="w-full border border-slate-200 bg-white rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        <option value="KPPD">KPPD</option>
+                                        <option value="Sektor Perancangan">Sektor Perancangan</option>
+                                        <option value="Sektor Pembelajaran">Sektor Pembelajaran</option>
+                                        <option value="Sektor Pengurusan Sekolah">Sektor Pengurusan Sekolah</option>
+                                        <option value="Sektor Pembangunan Murid">Sektor Pembangunan Murid</option>
+                                        <option value="Sektor Psikologi dan Kaunseling">Sektor Psikologi dan Kaunseling</option>
+                                        <option value="Sektor Pengurusan">Sektor Pengurusan</option>
+                                        <option value="Sektor Pentaksiran dan Penilaian">Sektor Pentaksiran dan Penilaian</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                    <button type="button" onclick="requestProfileUpdateSave()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-xs font-bold text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto">Simpan Perubahan</button>
+                    <button type="button" onclick="closeEditProfileModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-slate-200 shadow-sm px-4 py-2 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none sm:mt-0 sm:w-auto">Batal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KONFIRMASI SANDI ADMIN -->
+    <div id="admin-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-slate-900 opacity-75"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-rose-100 text-rose-600 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-shield-alt text-lg"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-md leading-6 font-bold text-slate-900">Pengesahan Kebebasan Pentadbir</h3>
+                            <div class="mt-2 space-y-3">
+                                <p class="text-xs text-slate-500">Tindakan keselamatan untuk memproses perubahan. Sila masukkan kata laluan admin untuk meneruskan.</p>
+                                <input type="password" id="admin-password-input" placeholder="Masukkan Kata Laluan Admin" class="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <p id="admin-error-msg" class="text-rose-500 text-[10px] font-bold hidden"><i class="fas fa-exclamation-triangle mr-1"></i> Kata laluan salah! Sila masukkan kata laluan yang betul.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                    <button type="button" id="admin-confirm-btn" onclick="confirmAdminDelete()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-rose-600 text-xs font-bold text-white hover:bg-rose-700 focus:outline-none sm:ml-3 sm:w-auto">Sahkan Tindakan</button>
+                    <button type="button" onclick="closeAdminModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-slate-200 shadow-sm px-4 py-2 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none sm:mt-0 sm:w-auto">Batal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER UTAMA -->
+    <footer class="bg-slate-950 text-slate-400 text-xs py-6 mt-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-2">
+                <span class="font-bold text-slate-200">e-Keberadaan PPD</span>
+                <span>© 2026 Pejabat Pendidikan Daerah Yan. Hak Cipta Terpelihara.</span>
+            </div>
+            <div class="flex space-x-4">
+                <a href="#" class="hover:text-white transition">Panduan Sistem</a>
+                <span>•</span>
+                <a href="#" class="hover:text-white transition">Dasar Privasi</a>
+                <span>•</span>
+                <a href="#" class="hover:text-white transition">Hubungi Pentadbir</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- TOAST POPUP NOTIFIKASI BERJAYA -->
+    <div id="toast-success" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-4 border border-slate-800 flex items-center space-x-3 transform translate-y-20 opacity-0 transition duration-300">
+        <div class="bg-emerald-500 p-2 rounded-lg text-white">
+            <i class="fas fa-check-circle text-lg"></i>
+        </div>
+        <div>
+            <h4 class="font-bold text-sm text-white" id="toast-title">Berjaya!</h4>
+            <p class="text-xs text-slate-400" id="toast-msg">Maklumat keberadaan telah dikemas kini.</p>
+        </div>
+        <button onclick="hideToast()" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- SKRIP LOGIKA UTAMA JAVASCRIPT -->
+    <script>
+        // Profil Pegawai Bawaan Awal (Default)
+        const INITIAL_PROFILES = [
+            { id: "p1", nama: "Dr. Ahmad bin Hashim", jawatan: "Ketua Pegawai Pendidikan Daerah", sektor: "KPPD" },
+            { id: "p2", nama: "Puan Noraini binti Yusuf", jawatan: "Penolong PPD SISC+", sektor: "Sektor Pembelajaran" },
+            { id: "p3", nama: "Encik Mohd Ridzuan bin Alias", jawatan: "Timbalan PPD Sektor Pengurusan Sekolah", sektor: "Sektor Pengurusan Sekolah" },
+            { id: "p4", nama: "Cik Sarah Jane anak Michael", jawatan: "Penolong PPD Hal Ehwal Murid", sektor: "Sektor Pembangunan Murid" },
+            { id: "p5", nama: "Encik Khairul Azhar bin Ramli", jawatan: "Pegawai Psikologi & Kaunseling", sektor: "Sektor Psikologi dan Kaunseling" },
+            { id: "p6", nama: "Puan Zalina binti Mohd Noor", jawatan: "Pegawai Eksekutif Kanan Pentadbiran", sektor: "Sektor Pengurusan" },
+            { id: "p7", nama: "Encik Roslan bin Ibrahim", jawatan: "Penolong PPD SISC+ Sains Sosial", sektor: "Sektor Pembelajaran" },
+            { id: "p8", nama: "Puan Siti Rohani binti Mat", jawatan: "Penolong PPD Prasekolah & Rendah", sektor: "Sektor Pengurusan Sekolah" },
+            { id: "p9", nama: "Encik Subramaniam a/l Govindasamy", jawatan: "Penolong PPD Menengah & Tingkatan 6", sektor: "Sektor Pengurusan Sekolah" },
+            { id: "p10", nama: "Puan Fatimah binti Awang", jawatan: "Penolong PPD Pembangunan Bakat Murid", sektor: "Sektor Pembangunan Murid" },
+            { id: "p11", nama: "Encik Kamarulzaman bin Daud", jawatan: "Penolong PPD Perancangan Daerah", sektor: "Sektor Perancangan" },
+            { id: "p12", nama: "Puan Janet Lim Wei Wei", jawatan: "Penolong PPD SISC+ Bahasa Inggeris", sektor: "Sektor Pembelajaran" },
+            { id: "p13", nama: "Puan Hajah Zaiton binti Sulaiman", jawatan: "Penolong PPD Pentaksiran dan Penilaian", sektor: "Sektor Pentaksiran dan Penilaian" },
+            { id: "p14", nama: "Encik Amirul Syahmi bin Mohamad", jawatan: "Pegawai Pentaksiran Sekolah Rendah", sektor: "Sektor Pentaksiran dan Penilaian" },
+            { id: "p15", nama: "Puan Maznah binti Hamid", jawatan: "Penolong PPD Unit Peperiksaan", sektor: "Sektor Pentaksiran dan Penilaian" }
+        ];
+
+        // Rekod Keberadaan Harian Bawaan Awal (Default)
+        const MOCK_PEGAWAI = [
+            {
+                id: "1",
+                nama: "Dr. Ahmad bin Hashim",
+                jawatan: "Ketua Pegawai Pendidikan Daerah",
+                sektor: "KPPD",
+                status: "Hadir di Pejabat",
+                jenisCuti: "",
+                lokasi: "",
+                tarikhMula: "",
+                tarikhTamat: "",
+                sebab: ""
+            },
+            {
+                id: "2",
+                nama: "Puan Noraini binti Yusuf",
+                jawatan: "Penolong PPD SISC+",
+                sektor: "Sektor Pembelajaran",
+                status: "Bimbingan",
+                jenisCuti: "",
+                lokasi: "SMK Guar Chempedak (08:30 AM-10:30 AM), SK Guar Chempedak (11:00 AM-01:00 PM)",
+                tarikhMula: "2026-06-07",
+                tarikhTamat: "2026-06-08",
+                sebab: "Bimbingan Pedagogi Bersemuka di Bilik Kuliah"
+            },
+            {
+                id: "3",
+                nama: "Encik Mohd Ridzuan bin Alias",
+                jawatan: "Timbalan PPD Sektor Pengurusan Sekolah",
+                sektor: "Sektor Pengurusan Sekolah",
+                status: "Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)",
+                jenisCuti: "",
+                lokasi: "Jabatan Pendidikan Negeri (JPN) Kedah",
+                tarikhMula: "2026-06-07",
+                tarikhTamat: "2026-06-07",
+                sebab: "Mesyuarat Pengurusan & Penyelarasan Bersama JPN Kedah"
+            },
+            {
+                id: "4",
+                nama: "Cik Sarah Jane anak Michael",
+                jawatan: "Penolong PPD Hal Ehwal Murid",
+                sektor: "Sektor Pembangunan Murid",
+                status: "Hadir di Pejabat",
+                jenisCuti: "",
+                lokasi: "",
+                tarikhMula: "",
+                tarikhTamat: "",
+                sebab: ""
+            },
+            {
+                id: "5",
+                nama: "Encik Khairul Azhar bin Ramli",
+                jawatan: "Pegawai Psikologi & Kaunseling",
+                sektor: "Sektor Psikologi dan Kaunseling",
+                status: "Cuti",
+                jenisCuti: "Cuti Ganti",
+                lokasi: "",
+                tarikhMula: "2026-06-07",
+                tarikhTamat: "2026-06-09",
+                sebab: "Cuti ganti tugasan lebih masa program hujung minggu lepas"
+            },
+            {
+                id: "6",
+                nama: "Puan Zalina binti Mohd Noor",
+                jawatan: "Pegawai Eksekutif Kanan Pentadbiran",
+                sektor: "Sektor Pengurusan",
+                status: "Hadir di Pejabat",
+                jenisCuti: "",
+                lokasi: "",
+                tarikhMula: "",
+                tarikhTamat: "",
+                sebab: ""
+            },
+            {
+                id: "7",
+                nama: "Encik Roslan bin Ibrahim",
+                jawatan: "Penolong PPD SISC+ Sains Sosial",
+                sektor: "Sektor Pembelajaran",
+                status: "Bimbingan",
+                jenisCuti: "",
+                lokasi: "SK Guar Chempedak (09:00 AM-11:30 AM), SJK(C) Pei Hwa (02:00 PM-04:00 PM)",
+                tarikhMula: "2026-06-07",
+                tarikhTamat: "2026-06-07",
+                sebab: "Bimbingan Verifikasi PBD di Sekolah Rendah"
+            },
+            {
+                id: "8",
+                nama: "Puan Siti Rohani binti Mat",
+                jawatan: "Penolong PPD Prasekolah & Rendah",
+                sektor: "Sektor Pengurusan Sekolah",
+                status: "Cuti",
+                jenisCuti: "Cuti Sakit (MC)",
+                lokasi: "",
+                tarikhMula: "2026-06-05",
+                tarikhTamat: "2026-06-08",
+                sebab: "Kelepasan Rawatan Perubatan Swasta"
+            },
+            {
+                id: "14",
+                nama: "Encik Amirul Syahmi bin Mohamad",
+                jawatan: "Pegawai Pentaksiran Sekolah Rendah",
+                sektor: "Sektor Pentaksiran dan Penilaian",
+                status: "Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)",
+                jenisCuti: "",
+                lokasi: "JPN Kedah Alor Setar",
+                tarikhMula: "2026-06-07",
+                tarikhTamat: "2026-06-08",
+                sebab: "Taklimat Urus Setia Instrumen Peperiksaan & Penilaian Negeri"
+            }
+        ];
+
+        // State Global Aplikasi
+        let profilPegawai = [];
+        let pegawaiData = [];
+        let selectedBimbinganSchools = []; // Menyimpan objek sekolah terpilih {school, timeStart, timeEnd}
+        
+        // Instance Chart.js untuk dihancurkan sebelum dirender ulang
+        let chartPresenceInstance = null;
+        let chartSectorsInstance = null;
+        let chartMonthlyTrendInstance = null;
+
+        // Variabel penampung tindakan kustom
+        let idToDelete = null;
+        let deleteType = null; // 'profile', 'record', atau 'edit_profile'
+
+        window.onload = function() {
+            // Memeriksa penyimpanan lokal untuk profil pegawai
+            const storedProfiles = localStorage.getItem('ppd_profil_pegawai');
+            if (storedProfiles) {
+                profilPegawai = JSON.parse(storedProfiles);
+            } else {
+                profilPegawai = [...INITIAL_PROFILES];
+                localStorage.setItem('ppd_profil_pegawai', JSON.stringify(profilPegawai));
+            }
+
+            // Memeriksa penyimpanan lokal untuk data harian
+            const storedKeberadaan = localStorage.getItem('ppd_keberadaan_data');
+            if (storedKeberadaan) {
+                pegawaiData = JSON.parse(storedKeberadaan);
+            } else {
+                pegawaiData = [...MOCK_PEGAWAI];
+                localStorage.setItem('ppd_keberadaan_data', JSON.stringify(pegawaiData));
+            }
+
+            // Inisialisasi Jam / Waktu Real-Time harian
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            // Populasikan Kalendar
+            generateCalendarGrid();
+
+            // Refresh seluruh tampilan antarmuka
+            refreshSystem();
+            populateOfficerDropdowns();
+            renderProfileDirectory();
+            generateReportPreview(); 
+        }
+
+        // Fungsi memperbarui jam dan penanggalan harian
+        function updateClock() {
+            const now = new Date();
+            const days = ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
+            const months = ["Januari", "Februari", "Mac", "April", "Mei", "Jun", "Julai", "Ogos", "September", "Oktober", "November", "Disember"];
+            
+            const dayName = days[now.getDay()];
+            const dateStr = now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+            
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            document.getElementById('live-date').innerText = `${dayName}, ${dateStr}`;
+            document.getElementById('live-time').innerText = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // Fungsi pusat untuk menyelaraskan seluruh render tampilan harian
+        function refreshSystem() {
+            calculateStats();
+            renderTable();
+            renderSectorCards();
+            renderOutOfOfficeList();
+            renderCharts();
+        }
+
+        // Menghitung statistik widget atas
+        function calculateStats() {
+            const total = pegawaiData.length;
+            const hadir = pegawaiData.filter(p => p.status === "Hadir di Pejabat").length;
+            const urusan = pegawaiData.filter(p => p.status === "Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)").length;
+            const bimbingan = pegawaiData.filter(p => p.status === "Bimbingan").length;
+            const cuti = pegawaiData.filter(p => p.status === "Cuti").length;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-hadir').innerText = hadir;
+            document.getElementById('stat-urusan').innerText = urusan;
+            document.getElementById('stat-bimbingan').innerText = bimbingan;
+            document.getElementById('stat-cuti').innerText = cuti;
+        }
+
+        // Format waktu 24 jam ke 12 jam (AM/PM)
+        function formatTime12h(timeStr) {
+            if (!timeStr) return '';
+            const parts = timeStr.split(':');
+            let hours = parseInt(parts[0]);
+            const minutes = parts[1];
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; 
+            return `${hours}:${minutes} ${ampm}`;
+        }
+
+        // Merender Grafik Chart.js (Termasuk Line Chart Bulanan dan Label Data)
+        function renderCharts() {
+            // Data Status Keberadaan Hari Ini
+            const statusCounts = {
+                "Hadir": pegawaiData.filter(p => p.status === "Hadir di Pejabat").length,
+                "Urusan": pegawaiData.filter(p => p.status === "Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)").length,
+                "Bimbingan": pegawaiData.filter(p => p.status === "Bimbingan").length,
+                "Cuti": pegawaiData.filter(p => p.status === "Cuti").length,
+            };
+            const totalStatus = statusCounts.Hadir + statusCounts.Urusan + statusCounts.Bimbingan + statusCounts.Cuti;
+
+            // Memperbarui Legenda Kad Data Dinamik di sebelah bawah Donut Chart
+            const legendContainer = document.getElementById('presence-legend-container');
+            if (legendContainer) {
+                const hadirPct = totalStatus > 0 ? Math.round((statusCounts.Hadir / totalStatus) * 100) : 0;
+                const urusanPct = totalStatus > 0 ? Math.round((statusCounts.Urusan / totalStatus) * 100) : 0;
+                const bimbinganPct = totalStatus > 0 ? Math.round((statusCounts.Bimbingan / totalStatus) * 100) : 0;
+                const cutiPct = totalStatus > 0 ? Math.round((statusCounts.Cuti / totalStatus) * 100) : 0;
+
+                legendContainer.innerHTML = `
+                    <div class="flex items-center justify-between p-1.5 bg-emerald-50/70 border border-emerald-100 rounded-lg px-2.5">
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2"></span>Hadir</span> 
+                        <span class="font-bold text-emerald-800">${statusCounts.Hadir} orang (${hadirPct}%)</span>
+                    </div>
+                    <div class="flex items-center justify-between p-1.5 bg-sky-50/70 border border-sky-100 rounded-lg px-2.5">
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 mr-2"></span>Urusan</span> 
+                        <span class="font-bold text-sky-800">${statusCounts.Urusan} orang (${urusanPct}%)</span>
+                    </div>
+                    <div class="flex items-center justify-between p-1.5 bg-violet-50/70 border border-violet-100 rounded-lg px-2.5">
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-violet-500 mr-2"></span>Bimbingan</span> 
+                        <span class="font-bold text-violet-800">${statusCounts.Bimbingan} orang (${bimbinganPct}%)</span>
+                    </div>
+                    <div class="flex items-center justify-between p-1.5 bg-rose-50/70 border border-rose-100 rounded-lg px-2.5">
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-2"></span>Cuti</span> 
+                        <span class="font-bold text-rose-800">${statusCounts.Cuti} orang (${cutiPct}%)</span>
+                    </div>
+                `;
+            }
+
+            // Render Chart 1: Donut Status Keberadaan dengan Ringkasan Tengah
+            const ctx1 = document.getElementById('chart-presence').getContext('2d');
+            if (chartPresenceInstance) chartPresenceInstance.destroy();
+            chartPresenceInstance = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hadir Pejabat', 'Urusan Rasmi', 'Bimbingan', 'Cuti'],
+                    datasets: [{
+                        data: [statusCounts.Hadir, statusCounts.Urusan, statusCounts.Bimbingan, statusCounts.Cuti],
+                        backgroundColor: ['#10b981', '#38bdf8', '#8b5cf6', '#f43f5e'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    let value = context.raw || 0;
+                                    let percentage = totalStatus > 0 ? Math.round((value / totalStatus) * 100) : 0;
+                                    return ` ${label}: ${value} orang (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                },
+                plugins: [{
+                    id: 'centerText',
+                    afterDraw: function(chart) {
+                        var width = chart.width,
+                            height = chart.height,
+                            ctx = chart.ctx;
+                        ctx.restore();
+                        ctx.textBaseline = "middle";
+                        
+                        // Paparan Peratusan Kehadiran di Tengah Carta Pai
+                        var percentage = totalStatus > 0 ? Math.round((statusCounts.Hadir / totalStatus) * 100) : 0;
+                        var mainText = percentage + "%";
+                        ctx.font = "bold 2.25rem sans-serif";
+                        ctx.fillStyle = "#0f172a"; // slate-900
+                        var mainTextX = Math.round((width - ctx.measureText(mainText).width) / 2);
+                        var mainTextY = height / 2 - 12;
+                        ctx.fillText(mainText, mainTextX, mainTextY);
+                        
+                        // Label Sub-teks "Hadir Pejabat"
+                        var subText = "Hadir Pejabat";
+                        ctx.font = "600 0.8rem sans-serif";
+                        ctx.fillStyle = "#64748b"; // slate-500
+                        var subTextX = Math.round((width - ctx.measureText(subText).width) / 2);
+                        var subTextY = height / 2 + 18;
+                        ctx.fillText(subText, subTextX, subTextY);
+                        
+                        ctx.save();
+                    }
+                }]
+            });
+
+            // Pecahan Sektor
+            const sectors = [
+                "KPPD",
+                "Sektor Perancangan",
+                "Sektor Pembelajaran",
+                "Sektor Pengurusan Sekolah",
+                "Sektor Pembangunan Murid",
+                "Sektor Psikologi dan Kaunseling",
+                "Sektor Pengurusan",
+                "Sektor Pentaksiran dan Penilaian"
+            ];
+
+            const sectorPresent = sectors.map(sec => pegawaiData.filter(p => p.sektor === sec && p.status === "Hadir di Pejabat").length);
+            const sectorAway = sectors.map(sec => pegawaiData.filter(p => p.sektor === sec && p.status !== "Hadir di Pejabat").length);
+
+            // Render Chart 2: Stacked Bar Chart Sektor (Termasuk Label Nilai Dalam Bar)
+            const ctx2 = document.getElementById('chart-sectors').getContext('2d');
+            if (chartSectorsInstance) chartSectorsInstance.destroy();
+            chartSectorsInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['KPPD', 'Perancangan', 'Pembelajaran', 'Pengurusan S.', 'Pembangunan M.', 'Kaunseling', 'Pengurusan', 'Pentaksiran'],
+                    datasets: [
+                        {
+                            label: 'Hadir Pejabat',
+                            data: sectorPresent,
+                            backgroundColor: '#10b981',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Luar / Bimbingan / Cuti',
+                            data: sectorAway,
+                            backgroundColor: '#cbd5e1',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: ${context.raw} orang`;
+                                }
+                            }
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'barLabels',
+                    afterDatasetsDraw(chart) {
+                        const { ctx } = chart;
+                        ctx.save();
+                        ctx.font = 'bold 11px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        chart.data.datasets.forEach((dataset, i) => {
+                            const meta = chart.getDatasetMeta(i);
+                            meta.data.forEach((bar, index) => {
+                                const value = dataset.data[index];
+                                if (value > 0) {
+                                    // Tentukan warna teks yang tinggi kontras dengan warna latar belakang segmen bar
+                                    ctx.fillStyle = (i === 0) ? '#ffffff' : '#0f172a';
+                                    // Kira titik tengah segmen secara tepat
+                                    const yCenter = (bar.y + bar.base) / 2;
+                                    ctx.fillText(value, bar.x, yCenter);
+                                }
+                            });
+                        });
+                        ctx.restore();
+                    }
+                }]
+            });
+
+            // --- CHART 3: ANALISIS BULANAN (Termasuk Label Nilai Trend) ---
+            const currentJuneRate = totalStatus > 0 ? Math.round((statusCounts.Hadir / totalStatus) * 100) : 80;
+            const presenceTrendData = [85, 82, 88, 79, 84, currentJuneRate, null, null, null, null, null, null];
+            
+            // Menghitung bulan terbaik harian di pejabat (dari Jan-Jun)
+            const months = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun'];
+            let maxVal = 0;
+            let maxMonthIndex = 0;
+            for(let i=0; i<6; i++) {
+                if(presenceTrendData[i] > maxVal) {
+                    maxVal = presenceTrendData[i];
+                    maxMonthIndex = i;
+                }
+            }
+            document.getElementById('best-presence-month').innerText = `${months[maxMonthIndex]} (${maxVal}%)`;
+
+            // Menghitung rata-rata kehadiran harian Jan-Jun
+            const validDataPoints = presenceTrendData.filter(val => val !== null);
+            const avgPresence = Math.round(validDataPoints.reduce((a,b) => a+b, 0) / validDataPoints.length);
+            document.getElementById('avg-presence-rate').innerText = `${avgPresence}%`;
+
+            const ctx3 = document.getElementById('chart-monthly-trend').getContext('2d');
+            if (chartMonthlyTrendInstance) chartMonthlyTrendInstance.destroy();
+            chartMonthlyTrendInstance = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogo', 'Sep', 'Okt', 'Nov', 'Dis'],
+                    datasets: [
+                        {
+                            label: '% Hadir Pejabat',
+                            data: presenceTrendData,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#10b981'
+                        },
+                        {
+                            label: '% Urusan Luar / Bimbingan',
+                            data: [10, 13, 8, 14, 11, totalStatus > 0 ? Math.round(((statusCounts.Urusan + statusCounts.Bimbingan) / totalStatus) * 100) : 15, null, null, null, null, null, null],
+                            borderColor: '#6366f1',
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            tension: 0.35,
+                            borderWidth: 2,
+                            borderDash: [4, 4],
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#6366f1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) { return value + "%" }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { boxWidth: 15, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'lineLabels',
+                    afterDatasetsDraw(chart) {
+                        const { ctx } = chart;
+                        ctx.save();
+                        ctx.font = '600 10px sans-serif';
+                        ctx.fillStyle = '#0f172a';
+                        ctx.textAlign = 'center';
+
+                        chart.data.datasets.forEach((dataset, i) => {
+                            const meta = chart.getDatasetMeta(i);
+                            meta.data.forEach((point, index) => {
+                                const value = dataset.data[index];
+                                if (value !== null && value !== undefined) {
+                                    // Cegah label bertindih antara dua garisan dengan meletakkannya di atas (Hadir) dan di bawah (Luar)
+                                    ctx.textBaseline = (i === 0) ? 'bottom' : 'top';
+                                    const offset = (i === 0) ? -6 : 6;
+                                    ctx.fillText(value + "%", point.x, point.y + offset);
+                                }
+                            });
+                        });
+                        ctx.restore();
+                    }
+                }]
+            });
+        }
+
+        // Merender kartu informasi persentase kehadiran per sektor
+        function renderSectorCards() {
+            const container = document.getElementById('sector-cards-container');
+            container.innerHTML = '';
+
+            const sectors = [
+                { id: 'kppd', name: "KPPD", icon: "fa-user-tie" },
+                { id: 'perancangan', name: "Sektor Perancangan", icon: "fa-project-diagram" },
+                { id: 'pembelajaran', name: "Sektor Pembelajaran", icon: "fa-book-open" },
+                { id: 'pengurusan_sekolah', name: "Sektor Pengurusan Sekolah", icon: "fa-school" },
+                { id: 'pembangunan', name: "Sektor Pembangunan Murid", icon: "fa-child" },
+                { id: 'psikologi', name: "Sektor Psikologi dan Kaunseling", icon: "fa-brain" },
+                { id: 'pengurusan', name: "Sektor Pengurusan", icon: "fa-wallet" },
+                { id: 'pentaksiran', name: "Sektor Pentaksiran dan Penilaian", icon: "fa-file-signature" }
+            ];
+
+            sectors.forEach(sec => {
+                const totalSec = pegawaiData.filter(p => p.sektor === sec.name).length;
+                const hadirSec = pegawaiData.filter(p => p.sektor === sec.name && p.status === "Hadir di Pejabat").length;
+                const rate = totalSec > 0 ? Math.round((hadirSec / totalSec) * 100) : 0;
+
+                const cardHTML = `
+                    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-indigo-50 text-indigo-600 p-2.5 rounded-lg">
+                                    <i class="fas ${sec.icon}"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-bold text-slate-800 leading-none">${sec.name}</h4>
+                                    <span class="text-[10px] text-slate-400 font-medium mt-1 inline-block">Pegawai Pegawai: ${totalSec}</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-bold text-emerald-600">${rate}% Hadir</span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 mt-3.5">
+                            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${rate}%"></div>
+                        </div>
+                        <div class="flex justify-between items-center mt-2.5 text-[10px] text-slate-500">
+                            <span>Hadir: ${hadirSec}</span>
+                            <span>Luar/Cuti: ${totalSec - hadirSec}</span>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        // Merender Jadual Utama Pegawai (Sektor & Status)
+        function renderTable(dataToRender = pegawaiData) {
+            const tbody = document.getElementById('table-pegawai-body');
+            const emptyState = document.getElementById('table-empty-state');
+            const countLabel = document.getElementById('table-results-count');
+
+            tbody.innerHTML = '';
+
+            if (dataToRender.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                countLabel.innerText = "Tiada keputusan ditemui";
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            countLabel.innerText = `Menunjukkan ${dataToRender.length} Rekod Pegawai`;
+
+            dataToRender.forEach(p => {
+                let badgeClass = '';
+                let statusIcon = '';
+                let displayStatus = p.status;
+
+                if (p.status === "Hadir di Pejabat") {
+                    badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    statusIcon = 'fa-building';
+                } else if (p.status === "Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)") {
+                    badgeClass = 'bg-sky-50 text-sky-700 border-sky-200';
+                    statusIcon = 'fa-briefcase';
+                    displayStatus = "Urusan Rasmi";
+                } else if (p.status === "Bimbingan") {
+                    badgeClass = 'bg-violet-50 text-violet-700 border-violet-200';
+                    statusIcon = 'fa-chalkboard-teacher';
+                } else if (p.status === "Cuti") {
+                    badgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+                    statusIcon = 'fa-plane-departure';
+                    if (p.jenisCuti) {
+                        displayStatus = `Cuti: ${p.jenisCuti}`;
+                    }
+                }
+
+                // Pengolahan kenyataan baris tabel
+                let reasonText = '-';
+                if (p.status !== "Hadir di Pejabat") {
+                    const tMula = p.tarikhMula ? formatDate(p.tarikhMula) : '';
+                    const tTamat = p.tarikhTamat ? formatDate(p.tarikhTamat) : '';
+                    const dateInfo = tMula ? `<div class="font-semibold text-slate-700"><i class="far fa-calendar mr-1"></i> ${tMula} ${tTamat ? 'hingga ' + tTamat : ''}</div>` : '';
+                    
+                    let lokasiBadge = '';
+                    if ((p.status === "Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)" || p.status === "Bimbingan") && p.lokasi) {
+                        const isMultiple = p.lokasi.includes(',');
+                        const locationLabel = isMultiple ? "Lokasi Gabungan" : "Lokasi";
+                        lokasiBadge = `<div class="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-150 px-2 py-0.5 rounded-md w-fit mt-1"><i class="fas fa-map-marker-alt mr-1 text-indigo-500"></i>${locationLabel}: ${p.lokasi}</div>`;
+                    }
+
+                    reasonText = `
+                        <div class="text-xs space-y-0.5 text-slate-500">
+                            ${dateInfo}
+                            ${lokasiBadge}
+                            <div class="italic text-slate-600 font-medium">${p.sebab || 'Tiada catatan sebab'}</div>
+                        </div>
+                    `;
+                }
+
+                const trHTML = `
+                    <tr class="hover:bg-slate-50/50 transition">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-9 h-9 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-700 font-bold text-sm shadow-sm">
+                                    ${getInitials(p.nama)}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-sm text-slate-800">${p.nama}</div>
+                                    <div class="text-[11px] text-slate-400">${p.jawatan}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-xs font-semibold text-slate-600">${p.sektor}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${badgeClass}">
+                                <i class="fas ${statusIcon} mr-1.5 text-[10px]"></i>
+                                ${displayStatus}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            ${reasonText}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="deletePegawai('${p.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Padam Pegawai">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += trHTML;
+            });
+        }
+
+        // Merender Senarai Pegawai Luar Pejabat di Tab Kalendar
+        function renderOutOfOfficeList() {
+            const listContainer = document.getElementById('out-of-office-list');
+            const listTitle = document.getElementById('out-of-office-count');
+
+            const awayPegawai = pegawaiData.filter(p => p.status !== "Hadir di Pejabat");
+            listTitle.innerText = `${awayPegawai.length} Pegawai`;
+
+            listContainer.innerHTML = '';
+
+            if (awayPegawai.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        <i class="fas fa-check-circle text-2xl text-emerald-400 mb-2"></i>
+                        <p class="text-xs font-bold text-slate-700">Tiada Kakitangan Berada di Luar Pejabat / Cuti</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Semua pegawai semasa berada atau bertugas di pejabat hari ini.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            awayPegawai.forEach(p => {
+                let badgeColor = '';
+                let displayStatusText = p.status;
+
+                if (p.status === "Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)") {
+                    badgeColor = 'bg-sky-500';
+                    displayStatusText = "Urusan Rasmi";
+                } else if (p.status === "Bimbingan") {
+                    badgeColor = 'bg-violet-500';
+                    displayStatusText = "Bimbingan";
+                } else if (p.status === "Cuti") {
+                    badgeColor = 'bg-rose-500';
+                    if (p.jenisCuti) displayStatusText = `Cuti: ${p.jenisCuti}`;
+                }
+
+                let lokasiInfo = '';
+                if ((p.status === "Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)" || p.status === "Bimbingan") && p.lokasi) {
+                    lokasiInfo = `<div class="text-[10px] text-indigo-700 font-bold bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 w-fit mt-1 mb-1"><i class="fas fa-map-marker-alt mr-1"></i>${p.lokasi}</div>`;
+                }
+
+                const divHTML = `
+                    <div class="p-3 bg-slate-50 hover:bg-slate-100 transition rounded-xl border border-slate-100 flex items-start space-x-3">
+                        <span class="w-2.5 h-2.5 rounded-full ${badgeColor} mt-1.5 flex-shrink-0"></span>
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-start">
+                                <h4 class="text-xs font-bold text-slate-800">${p.nama}</h4>
+                                <span class="text-[9px] font-bold text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded uppercase">${displayStatusText}</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 font-semibold mt-0.5">${p.jawatan}</p>
+                            ${lokasiInfo}
+                            <div class="mt-2 bg-white p-2 rounded border border-slate-150 text-[11px] text-slate-600">
+                                <span class="font-bold text-slate-700"><i class="far fa-calendar mr-1"></i> ${p.tarikhMula ? formatDate(p.tarikhMula) : 'Hari Ini'}</span>
+                                ${p.sebab ? ` | <span class="italic font-medium">${p.sebab}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                listContainer.innerHTML += divHTML;
+            });
+        }
+
+        // Filter pencarian pegawai di direktori utama
+        function filterPegawai() {
+            const searchValue = document.getElementById('search-pegawai').value.toLowerCase();
+            const sectorValue = document.getElementById('filter-sektor').value;
+            const statusValue = document.getElementById('filter-status').value;
+
+            const filtered = pegawaiData.filter(p => {
+                const matchSearch = p.nama.toLowerCase().includes(searchValue) || 
+                                    p.jawatan.toLowerCase().includes(searchValue) || 
+                                    (p.jenisCuti && p.jenisCuti.toLowerCase().includes(searchValue)) ||
+                                    (p.lokasi && p.lokasi.toLowerCase().includes(searchValue)) ||
+                                    (p.sebab && p.sebab.toLowerCase().includes(searchValue));
+                
+                const matchSector = sectorValue === "semua" || p.sektor === sectorValue;
+                
+                let matchStatus = true;
+                if (statusValue !== "semua") {
+                    matchStatus = p.status === statusValue;
+                }
+
+                return matchSearch && matchSector && matchStatus;
+            });
+
+            renderTable(filtered);
+        }
+
+        // Populasikan dropdown nama pegawai
+        function populateOfficerDropdowns() {
+            const dropdown = document.getElementById('form-nama');
+            dropdown.innerHTML = '<option value="" disabled selected>-- Pilih Nama Anda --</option>';
+
+            const sortedProfiles = [...profilPegawai].sort((a, b) => a.nama.localeCompare(b.nama));
+
+            sortedProfiles.forEach(profile => {
+                const opt = document.createElement('option');
+                opt.value = profile.id;
+                opt.innerText = profile.nama;
+                dropdown.appendChild(opt);
+            });
+        }
+
+        // Melacak aksi pergantian pilihan nama di borang harian
+        function onOfficerSelect() {
+            const dropdown = document.getElementById('form-nama');
+            const infoCard = document.getElementById('officer-info-card');
+            const infoJawatan = document.getElementById('info-jawatan');
+            const infoSektor = document.getElementById('info-sektor');
+
+            const selectedProfileId = dropdown.value;
+            const profile = profilPegawai.find(p => p.id === selectedProfileId);
+
+            if (profile) {
+                infoCard.classList.remove('hidden');
+                infoJawatan.innerText = profile.jawatan;
+                infoSektor.innerText = profile.sektor;
+            } else {
+                infoCard.classList.add('hidden');
+            }
+        }
+
+        // Merender profil pegawai di direktori admin
+        function renderProfileDirectory(data = profilPegawai) {
+            const container = document.getElementById('profile-directory-list');
+            container.innerHTML = '';
+
+            const sorted = [...data].sort((a, b) => a.nama.localeCompare(b.nama));
+
+            if (sorted.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Tiada profil dikesan.</p>`;
+                return;
+            }
+
+            sorted.forEach(profile => {
+                const row = `
+                    <div class="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-100 text-xs transition">
+                        <div class="truncate max-w-[70%]">
+                            <p class="font-bold text-slate-800 leading-tight">${profile.nama}</p>
+                            <p class="text-[10px] text-slate-400 font-semibold">${profile.jawatan} (${profile.sektor})</p>
+                        </div>
+                        <div class="flex space-x-1 flex-shrink-0">
+                            <!-- Butang Sunting Profil -->
+                            <button onclick="openEditProfileModal('${profile.id}')" class="text-slate-400 hover:text-indigo-600 p-1.5 rounded-full hover:bg-indigo-50 transition" title="Sunting Profil Pegawai">
+                                <i class="fas fa-user-edit text-xs"></i>
+                            </button>
+                            <!-- Butang Padam Profil -->
+                            <button onclick="requestAdminDelete('${profile.id}', 'profile')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-full hover:bg-rose-50 transition" title="Padam Pegawai Bersara/Berpindah">
+                                <i class="fas fa-user-minus text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += row;
+            });
+        }
+
+        // Filter pencarian profil pada direktori admin
+        function filterDirectory() {
+            const q = document.getElementById('search-directory').value.toLowerCase();
+            const filtered = profilPegawai.filter(p => 
+                p.nama.toLowerCase().includes(q) || 
+                p.jawatan.toLowerCase().includes(q) || 
+                p.sektor.toLowerCase().includes(q)
+            );
+            renderProfileDirectory(filtered);
+        }
+
+        // Pembuatan Profil Pegawai Baru (Registrasi)
+        function handleProfileSubmit(event) {
+            event.preventDefault();
+
+            const nama = document.getElementById('input-profile-nama').value.trim();
+            const jawatan = document.getElementById('input-profile-jawatan').value.trim();
+            const sektor = document.getElementById('input-profile-sektor').value;
+
+            if (!nama || !jawatan || !sektor) {
+                showToast("Sila Lengkapkan!", "Sila isi semua maklumat bagi profil baharu.", "error");
+                return;
+            }
+
+            const newProfile = {
+                id: "p_" + Date.now(),
+                nama,
+                jawatan,
+                sektor
+            };
+
+            profilPegawai.push(newProfile);
+            localStorage.setItem('ppd_profil_pegawai', JSON.stringify(profilPegawai));
+
+            document.getElementById('profile-registration-form').reset();
+            populateOfficerDropdowns();
+            renderProfileDirectory();
+            
+            showToast("Profil Disimpan!", `${nama} kini sedia didaftarkan dalam sistem.`, "success");
+        }
+
+        // --- SISTEM KAWALAN SUNTINGAN PROFIL ---
+        function openEditProfileModal(id) {
+            const profile = profilPegawai.find(p => p.id === id);
+            if (!profile) return;
+            
+            document.getElementById('edit-profile-id').value = profile.id;
+            document.getElementById('edit-profile-nama').value = profile.nama;
+            document.getElementById('edit-profile-jawatan').value = profile.jawatan;
+            document.getElementById('edit-profile-sektor').value = profile.sektor;
+
+            document.getElementById('edit-profile-modal').classList.remove('hidden');
+        }
+
+        function closeEditProfileModal() {
+            document.getElementById('edit-profile-modal').classList.add('hidden');
+        }
+
+        function requestProfileUpdateSave() {
+            const id = document.getElementById('edit-profile-id').value;
+            const newNama = document.getElementById('edit-profile-nama').value.trim();
+            const newJawatan = document.getElementById('edit-profile-jawatan').value.trim();
+
+            if (!newNama || !newJawatan) {
+                showToast("Sila Lengkapkan!", "Sila isi semua maklumat profil.", "error");
+                return;
+            }
+
+            // Challenge user for admin password to save edited profile
+            requestAdminDelete(id, 'edit_profile');
+        }
+
+        // Inisialisasi penghapusan kustom lewat sandi admin
+        function requestAdminDelete(id, type) {
+            idToDelete = id;
+            deleteType = type; // 'profile', 'record', atau 'edit_profile'
+
+            const confirmBtn = document.getElementById('admin-confirm-btn');
+            
+            // Mengubah suai teks & gaya butang modal keselamatan secara dinamik
+            if (type === 'edit_profile') {
+                confirmBtn.innerText = "Sahkan Kemas Kini";
+                confirmBtn.className = "w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-xs font-bold text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto";
+            } else {
+                confirmBtn.innerText = "Sahkan Padam";
+                confirmBtn.className = "w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-rose-600 text-xs font-bold text-white hover:bg-rose-700 focus:outline-none sm:ml-3 sm:w-auto";
+            }
+
+            document.getElementById('admin-password-input').value = '';
+            document.getElementById('admin-error-msg').classList.add('hidden');
+            document.getElementById('admin-modal').classList.remove('hidden');
+        }
+
+        function closeAdminModal() {
+            document.getElementById('admin-modal').classList.add('hidden');
+            idToDelete = null;
+            deleteType = null;
+        }
+
+        // Validasi sandi admin ("admin123") dan eksekusi tindakan
+        function confirmAdminDelete() {
+            const enteredPass = document.getElementById('admin-password-input').value;
+
+            if (enteredPass === 'admin123') {
+                if (deleteType === 'profile') {
+                    const profileObj = profilPegawai.find(p => p.id === idToDelete);
+                    const name = profileObj ? profileObj.nama : 'Pegawai';
+
+                    profilPegawai = profilPegawai.filter(p => p.id !== idToDelete);
+                    localStorage.setItem('ppd_profil_pegawai', JSON.stringify(profilPegawai));
+
+                    pegawaiData = pegawaiData.filter(p => p.nama !== name);
+                    localStorage.setItem('ppd_keberadaan_data', JSON.stringify(pegawaiData));
+
+                    populateOfficerDropdowns();
+                    renderProfileDirectory();
+                    refreshSystem();
+                    generateReportPreview();
+
+                    showToast("Berjaya Dipadam!", `Profil ${name} telah dikeluarkan daripada direktori PPD.`, "success");
+                } 
+                else if (deleteType === 'record') {
+                    pegawaiData = pegawaiData.filter(p => p.id !== idToDelete);
+                    localStorage.setItem('ppd_keberadaan_data', JSON.stringify(pegawaiData));
+                    
+                    refreshSystem();
+                    showToast("Rekod Dipadam!", "Rekod keberadaan harian telah dikeluarkan.", "success");
+                }
+                else if (deleteType === 'edit_profile') {
+                    const targetId = idToDelete;
+                    const newNama = document.getElementById('edit-profile-nama').value.trim();
+                    const newJawatan = document.getElementById('edit-profile-jawatan').value.trim();
+                    const newSektor = document.getElementById('edit-profile-sektor').value;
+
+                    // Cari nama lama profil asal untuk kemas kini rekod sedia ada
+                    const oldProfile = profilPegawai.find(p => p.id === targetId);
+                    const oldNama = oldProfile ? oldProfile.nama : '';
+
+                    // Kemas kini senarai direktori utama
+                    profilPegawai = profilPegawai.map(p => {
+                        if (p.id === targetId) {
+                            return { ...p, nama: newNama, jawatan: newJawatan, sektor: newSektor };
+                        }
+                        return p;
+                    });
+                    localStorage.setItem('ppd_profil_pegawai', JSON.stringify(profilPegawai));
+
+                    // Kemas kini nama/jawatan/sektor di log harian untuk rekod yang sepadan
+                    if (oldNama) {
+                        pegawaiData = pegawaiData.map(record => {
+                            if (record.nama === oldNama) {
+                                return { ...record, nama: newNama, jawatan: newJawatan, sektor: newSektor };
+                            }
+                            return record;
+                        });
+                        localStorage.setItem('ppd_keberadaan_data', JSON.stringify(pegawaiData));
+                    }
+
+                    // Sinkronisasi dan Segarkan UI
+                    populateOfficerDropdowns();
+                    renderProfileDirectory();
+                    refreshSystem();
+                    generateReportPreview();
+                    closeEditProfileModal();
+
+                    showToast("Selesai!", `Profil ${newNama} berjaya dikemas kini.`, "success");
+                }
+
+                closeAdminModal();
+            } else {
+                document.getElementById('admin-error-msg').classList.remove('hidden');
+            }
+        }
+
+        // Reset system ke data contoh (MOCK) harian
+        function resetToDefaultData() {
+            if (confirm("Adakah anda mahu menetapkan semula sistem ini? Seluruh profil dan data harian akan dikembalikan ke tetapan asal.")) {
+                profilPegawai = [...INITIAL_PROFILES];
+                localStorage.setItem('ppd_profil_pegawai', JSON.stringify(profilPegawai));
+                
+                pegawaiData = [...MOCK_PEGAWAI];
+                localStorage.setItem('ppd_keberadaan_data', JSON.stringify(pegawaiData));
+                
+                selectedBimbinganSchools = [];
+                
+                populateOfficerDropdowns();
+                renderProfileDirectory();
+                refreshSystem();
+                generateReportPreview();
+                
+                showToast("Sistem Di-reset!", "Data sistem asal telah dipulihkan.", "success");
+            }
+        }
+
+        // --- SISTEM PEMILIHAN SEKOLAH & WAKTU BIMBINGAN ---
+        function showBimbinganTimeSetter() {
+            const selectEl = document.getElementById('form-lokasi-bimbingan');
+            const schoolName = selectEl.value;
+            if (!schoolName) return;
+
+            document.getElementById('bimbingan-selected-school-name').innerText = schoolName;
+            document.getElementById('bimbingan-time-setter').classList.remove('hidden');
+        }
+
+        function cancelBimbinganTimeSetter() {
+            document.getElementById('bimbingan-time-setter').classList.add('hidden');
+            document.getElementById('form-lokasi-bimbingan').value = "";
+        }
+
+        function confirmAndAddBimbinganSchool() {
+            const schoolName = document.getElementById('bimbingan-selected-school-name').innerText;
+            const timeStart = document.getElementById('bimbingan-time-start').value;
+            const timeEnd = document.getElementById('bimbingan-time-end').value;
+
+            if (!timeStart || !timeEnd) {
+                showToast("Sila Isi Masa!", "Sila tetapkan masa mula dan tamat bimbingan.", "error");
+                return;
+            }
+
+            const exists = selectedBimbinganSchools.some(item => item.school === schoolName);
+            if (!exists) {
+                selectedBimbinganSchools.push({
+                    school: schoolName,
+                    timeStart: timeStart,
+                    timeEnd: timeEnd
+                });
+                renderBimbinganChips();
+            } else {
+                showToast("Ralat!", "Sekolah ini telah ditambah.", "error");
+            }
+
+            document.getElementById('bimbingan-time-setter').classList.add('hidden');
+            document.getElementById('form-lokasi-bimbingan').value = "";
+            handleLocationChange();
+        }
+
+        function removeBimbinganSchool(schoolName) {
+            selectedBimbinganSchools = selectedBimbinganSchools.filter(item => item.school !== schoolName);
+            renderBimbinganChips();
+            handleLocationChange();
+        }
+
+        function clearBimbinganSchools() {
+            selectedBimbinganSchools = [];
+            renderBimbinganChips();
+            handleLocationChange();
+        }
+
+        function renderBimbinganChips() {
+            const container = document.getElementById('bimbingan-chips-container');
+            const clearBtn = document.getElementById('clear-bimbingan-btn');
+            container.innerHTML = '';
+
+            if (selectedBimbinganSchools.length === 0) {
+                container.innerHTML = `<span class="text-[11px] text-slate-400 italic">Tiada sekolah dipilih. Sila klik dropdown untuk memilih.</span>`;
+                clearBtn.classList.add('hidden');
+                return;
+            }
+
+            if (selectedBimbinganSchools.length > 1) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+
+            selectedBimbinganSchools.forEach(item => {
+                const escapedName = item.school.replace(/'/g, "\\'");
+                const chip = `
+                    <span class="inline-flex flex-col bg-indigo-50 text-indigo-700 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-indigo-200 transition hover:bg-indigo-100 shadow-sm">
+                        <div class="flex items-center justify-between w-full">
+                            <span class="font-bold text-slate-800">${item.school}</span>
+                            <button type="button" onclick="removeBimbinganSchool('${escapedName}')" class="ml-3 text-indigo-400 hover:text-indigo-950 focus:outline-none" title="Keluarkan sekolah ini">
+                                <i class="fas fa-times-circle text-xs"></i>
+                            </button>
+                        </div>
+                        <span class="text-[10px] text-indigo-500 font-medium mt-0.5"><i class="far fa-clock mr-1"></i> ${formatTime12h(item.timeStart)} - ${formatTime12h(item.timeEnd)}</span>
+                    </span>
+                `;
+                container.innerHTML += chip;
+            });
+        }
+
+        // Pergantian tampilan kondisional field borang
+        function toggleFormOutFields() {
+            const statusRadios = document.getElementsByName('form-status');
+            let selectedStatus = 'Hadir di Pejabat';
+            for (let i = 0; i < statusRadios.length; i++) {
+                if (statusRadios[i].checked) {
+                    selectedStatus = statusRadios[i].value;
+                    break;
+                }
+            }
+
+            const conditionalFields = document.getElementById('form-conditional-fields');
+            const jenisCutiContainer = document.getElementById('jenis-cuti-container');
+            const lokasiUrusanContainer = document.getElementById('lokasi-urusan-container');
+            const lokasiBimbinganContainer = document.getElementById('lokasi-bimbingan-container');
+            
+            const tarikhMulaInput = document.getElementById('form-tarikh-mula');
+            const tarikhTamatInput = document.getElementById('date-label-end');
+
+            const formJenisCuti = document.getElementById('form-jenis-cuti');
+            const formLocationsUrusan = document.getElementById('form-lokasi-urusan');
+            const formLocationsBimbingan = document.getElementById('form-lokasi-bimbingan');
+
+            conditionalFields.classList.add('hidden');
+            jenisCutiContainer.classList.add('hidden');
+            lokasiUrusanContainer.classList.add('hidden');
+            lokasiBimbinganContainer.classList.add('hidden');
+
+            formJenisCuti.removeAttribute('required');
+            formLocationsUrusan.removeAttribute('required');
+            formLocationsBimbingan.removeAttribute('required');
+            
+            tarikhMulaInput.removeAttribute('required');
+            tarikhTamatInput.removeAttribute('required');
+
+            if (selectedStatus !== 'Hadir di Pejabat') {
+                conditionalFields.classList.remove('hidden');
+                
+                tarikhMulaInput.setAttribute('required', 'required');
+                tarikhTamatInput.setAttribute('required', 'required');
+
+                if (selectedStatus === 'Cuti') {
+                    jenisCutiContainer.classList.remove('hidden');
+                    formJenisCuti.setAttribute('required', 'required');
+                } else if (selectedStatus === 'Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)') {
+                    lokasiUrusanContainer.classList.remove('hidden');
+                    formLocationsUrusan.setAttribute('required', 'required');
+                } else if (selectedStatus === 'Bimbingan') {
+                    lokasiBimbinganContainer.classList.remove('hidden');
+                    renderBimbinganChips();
+                }
+            }
+            handleLocationChange();
+        }
+
+        function handleLocationChange() {
+            const reminder = document.getElementById('lokasi-catatan-reminder');
+            
+            const statusRadios = document.getElementsByName('form-status');
+            let selectedStatus = 'Hadir di Pejabat';
+            for (let i = 0; i < statusRadios.length; i++) {
+                if (statusRadios[i].checked) {
+                    selectedStatus = statusRadios[i].value;
+                    break;
+                }
+            }
+
+            const hasLainLain = selectedBimbinganSchools.some(item => item.school === "Lain-lain Lokasi");
+            if (selectedStatus === 'Bimbingan' && hasLainLain) {
+                reminder.classList.remove('hidden');
+            } else {
+                reminder.classList.add('hidden');
+            }
+        }
+
+        // Pengosongan isian form harian
+        function clearForm() {
+            document.getElementById('presence-form').reset();
+            document.getElementById('officer-info-card').classList.add('hidden');
+            selectedBimbinganSchools = [];
+            renderBimbinganChips();
+            toggleFormOutFields();
+        }
+
+        // Submit form harian keberadaan
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const profileId = document.getElementById('form-nama').value;
+            const profile = profilPegawai.find(p => p.id === profileId);
+
+            if (!profile) {
+                showToast("Sila Pilih Pegawai!", "Sila pilih nama pegawai yang sah daripada senarai dropdown.", "error");
+                return;
+            }
+
+            const nama = profile.nama;
+            const jawatan = profile.jawatan;
+            const sektor = profile.sektor;
+            
+            const statusRadios = document.getElementsByName('form-status');
+            let status = 'Hadir di Pejabat';
+            for (let i = 0; i < statusRadios.length; i++) {
+                if (statusRadios[i].checked) {
+                    status = statusRadios[i].value;
+                    break;
+                }
+            }
+
+            const jenisCuti = (status === 'Cuti') ? document.getElementById('form-jenis-cuti').value : '';
+            
+            let lokasi = '';
+            if (status === 'Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)') {
+                lokasi = document.getElementById('form-lokasi-urusan').value.trim();
+            } else if (status === 'Bimbingan') {
+                if (selectedBimbinganSchools.length === 0) {
+                    showToast("Ralat!", "Sila pilih sekurang-kurangnya satu Sekolah / Lokasi Bimbingan.", "error");
+                    return;
+                }
+                lokasi = selectedBimbinganSchools.map(item => `${item.school} (${formatTime12h(item.timeStart)}-${formatTime12h(item.timeEnd)})`).join(', ');
+            }
+
+            const tarikhMula = document.getElementById('form-tarikh-mula').value;
+            const tarikhTamat = document.getElementById('date-label-end').value;
+            const sebab = document.getElementById('form-sebab').value.trim();
+
+            if (status !== 'Hadir di Pejabat') {
+                if (!tarikhMula || !tarikhTamat) {
+                    showToast("Ralat Tarikh!", "Tarikh Mula dan Tarikh Tamat adalah wajib.", "error");
+                    return;
+                }
+            }
+
+            if (status === 'Cuti' && !jenisCuti) {
+                showToast("Ralat!", "Sila pilih Jenis Cuti.", "error");
+                return;
+            }
+
+            if (status === 'Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)' && !lokasi) {
+                showToast("Ralat!", "Sila taip Lokasi Urusan Rasmi anda.", "error");
+                return;
+            }
+
+            pegawaiData = pegawaiData.filter(p => p.nama !== nama);
+
+            const newOfficer = {
+                id: Date.now().toString(),
+                nama,
+                jawatan,
+                sektor,
+                status,
+                jenisCuti,
+                lokasi,
+                tarikhMula,
+                tarikhTamat,
+                sebab
+            };
+
+            pegawaiData.unshift(newOfficer);
+            localStorage.setItem('ppd_keberadaan_data', JSON.stringify(pegawaiData));
+
+            refreshSystem();
+            showToast("Berjaya Diisi!", "Rekod keberadaan anda telah disimpan dalam live pangkalan data.", "success");
+
+            clearForm();
+            setTimeout(() => {
+                switchTab('senarai');
+            }, 800);
+        }
+
+        // Pengendalian navigasi Tab
+        function switchTab(tabId) {
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.add('hidden'));
+
+            document.getElementById(`content-${tabId}`).classList.remove('hidden');
+
+            const tabButtons = ['dashboard', 'senarai', 'kalendar', 'laporan', 'borang'];
+            tabButtons.forEach(btnId => {
+                const btn = document.getElementById(`tab-${btnId}`);
+                if (btnId === tabId) {
+                    if (btnId === 'laporan') {
+                        btn.className = "border-emerald-600 text-emerald-600 border-b-2 py-3 px-1 font-semibold text-sm whitespace-nowrap flex items-center space-x-2";
+                    } else {
+                        btn.className = "border-indigo-600 text-indigo-600 border-b-2 py-3 px-1 font-semibold text-sm whitespace-nowrap flex items-center space-x-2";
+                    }
+                } else {
+                    btn.className = "border-transparent text-slate-500 hover:text-indigo-600 hover:border-indigo-300 border-b-2 py-3 px-1 font-semibold text-sm whitespace-nowrap flex items-center space-x-2";
+                }
+            });
+        }
+
+        // Ekspor cepat CSV
+        function exportToCSV() {
+            let csvContent = "Nama,Jawatan,Sektor,Status,Jenis Cuti,Lokasi Urusan/Bimbingan,Tarikh Mula,Tarikh Tamat,Sebab/Keterangan\n";
+            pegawaiData.forEach(p => {
+                csvContent += `"${p.nama}","${p.jawatan}","${p.sektor}","${p.status}","${p.jenisCuti || '-'}","${p.lokasi || '-'}","${p.tarikhMula || '-'}","${p.tarikhTamat || '-'}","${p.sebab || '-'}"\n`;
+            });
+
+            const tempTextArea = document.createElement("textarea");
+            tempTextArea.value = csvContent;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempTextArea);
+
+            showToast("CSV Disalin!", "Data telah disalin dalam format CSV ke papan keratan (clipboard) anda.", "success");
+        }
+
+        // Kalendar Bulanan Simulasi (Jun 2026)
+        function generateCalendarGrid() {
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            grid.innerHTML += `<div class="p-2 text-slate-300 bg-slate-50 rounded">31</div>`;
+
+            for (let day = 1; day <= 30; day++) {
+                let densityColor = 'bg-emerald-50 text-emerald-800 border-emerald-100 border';
+                if (day % 4 === 0 || day % 7 === 0) {
+                    densityColor = 'bg-amber-50 text-amber-800 border-amber-150 border';
+                }
+
+                grid.innerHTML += `
+                    <div class="p-2 rounded font-bold cursor-pointer transition ${densityColor} hover:scale-105" title="Klik untuk lihat detail pergerakan hari ${day}">
+                        ${day}
+                    </div>
+                `;
+            }
+        }
+
+        // ==========================================
+        // EKSPOR LAPORAN EXCELSheetJS (.xlsx)
+        // ==========================================
+        function toggleReportTypeFields() {
+            const type = document.getElementById('report-type').value;
+            document.getElementById('report-config-harian').classList.add('hidden');
+            document.getElementById('report-config-mingguan').classList.add('hidden');
+            document.getElementById('report-config-bulanan').classList.add('hidden');
+
+            if (type === 'harian') {
+                document.getElementById('report-config-harian').classList.remove('hidden');
+            } else if (type === 'mingguan') {
+                document.getElementById('report-config-mingguan').classList.remove('hidden');
+            } else if (type === 'bulanan') {
+                document.getElementById('report-config-bulanan').classList.remove('hidden');
+            }
+            generateReportPreview();
+        }
+
+        // Filter log pergerakan kondisional tanggal
+        function getOfficerStatusOnDate(profile, targetDateStr) {
+            const targetDate = new Date(targetDateStr);
+            targetDate.setHours(0,0,0,0);
+
+            const activeLog = pegawaiData.find(log => {
+                if (log.nama === profile.nama && log.status !== "Hadir di Pejabat") {
+                    if (log.tarikhMula && log.tarikhTamat) {
+                        const start = new Date(log.tarikhMula);
+                        start.setHours(0,0,0,0);
+                        const end = new Date(log.tarikhTamat);
+                        end.setHours(0,0,0,0);
+                        return targetDate >= start && targetDate <= end;
+                    }
+                }
+                return false;
+            });
+
+            if (activeLog) {
+                return {
+                    status: activeLog.status,
+                    jenisCuti: activeLog.jenisCuti || "-",
+                    lokasi: activeLog.lokasi || "-",
+                    tarikhMula: activeLog.tarikhMula,
+                    tarikhTamat: activeLog.tarikhTamat,
+                    sebab: activeLog.sebab || "-"
+                };
+            }
+
+            return {
+                status: "Hadir di Pejabat",
+                jenisCuti: "-",
+                lokasi: "-",
+                tarikhMula: "-",
+                tarikhTamat: "-",
+                sebab: "-"
+            };
+        }
+
+        function isLogOverlappingRange(log, startStr, endStr) {
+            if (!log.tarikhMula || !log.tarikhTamat) return false;
+            
+            const lStart = new Date(log.tarikhMula);
+            const lEnd = new Date(log.tarikhTamat);
+            const rStart = new Date(startStr);
+            const rEnd = new Date(endStr);
+
+            return lStart <= rEnd && lEnd >= rStart;
+        }
+
+        // Menghimpun seluruh data laporan dari konfigurasi
+        function compileReportData() {
+            const type = document.getElementById('report-type').value;
+            const sector = document.getElementById('report-sektor').value;
+            
+            let dataset = [];
+
+            if (type === 'harian') {
+                const targetDate = document.getElementById('report-date-harian').value;
+                if (!targetDate) return [];
+
+                profilPegawai.forEach(profile => {
+                    const statusInfo = getOfficerStatusOnDate(profile, targetDate);
+                    dataset.push({
+                        nama: profile.nama,
+                        jawatan: profile.jawatan,
+                        sektor: profile.sektor,
+                        status: statusInfo.status,
+                        jenisCuti: statusInfo.jenisCuti,
+                        lokasi: statusInfo.lokasi,
+                        tarikhMula: statusInfo.tarikhMula,
+                        tarikhTamat: statusInfo.tarikhTamat,
+                        sebab: statusInfo.sebab
+                    });
+                });
+            } 
+            else if (type === 'mingguan') {
+                const start = document.getElementById('report-date-mula').value;
+                const end = document.getElementById('report-date-tamat').value;
+                if (!start || !end) return [];
+
+                pegawaiData.forEach(p => {
+                    if (p.status !== "Hadir di Pejabat" && isLogOverlappingRange(p, start, end)) {
+                        dataset.push(p);
+                    }
+                });
+            } 
+            else if (type === 'bulanan') {
+                const m = parseInt(document.getElementById('report-bulan').value);
+                const y = parseInt(document.getElementById('report-tahun').value);
+                
+                const startOfMonth = new Date(y, m, 1);
+                const endOfMonth = new Date(y, m + 1, 0);
+
+                const startStr = startOfMonth.toISOString().split('T')[0];
+                const endStr = endOfMonth.toISOString().split('T')[0];
+
+                pegawaiData.forEach(p => {
+                    if (p.status !== "Hadir di Pejabat" && isLogOverlappingRange(p, startStr, endStr)) {
+                        dataset.push(p);
+                    }
+                });
+            }
+
+            if (sector !== 'semua') {
+                dataset = dataset.filter(p => p.sektor === sector);
+            }
+
+            return dataset;
+        }
+
+        // Merender pratinjau tabel laporan
+        function generateReportPreview() {
+            const tbody = document.getElementById('report-preview-tbody');
+            const emptyEl = document.getElementById('report-preview-empty');
+            const countBadge = document.getElementById('preview-count');
+
+            const reportData = compileReportData();
+            tbody.innerHTML = '';
+            countBadge.innerText = `${reportData.length} Rekod`;
+
+            if (reportData.length === 0) {
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+
+            emptyEl.classList.add('hidden');
+
+            reportData.forEach((p, index) => {
+                let badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                if (p.status === "Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)") badgeColor = "bg-sky-50 text-sky-700 border-sky-200";
+                else if (p.status === "Bimbingan") badgeColor = "bg-violet-50 text-violet-700 border-violet-200";
+                else if (p.status === "Cuti") badgeColor = "bg-rose-50 text-rose-700 border-rose-200";
+
+                let details = "-";
+                if (p.status !== "Hadir di Pejabat") {
+                    const tempoh = p.tarikhMula ? `${formatDate(p.tarikhMula)} - ${formatDate(p.tarikhTamat)}` : 'Harian';
+                    details = `
+                        <div class="space-y-0.5">
+                            <span class="font-bold text-slate-700 block">${tempoh}</span>
+                            ${p.lokasi && p.lokasi !== '-' ? `<span class="text-indigo-700 font-semibold text-[10px] bg-indigo-50 px-1 py-0.5 rounded block w-fit"><i class="fas fa-map-marker-alt"></i> ${p.lokasi}</span>` : ''}
+                            <span class="italic text-slate-500 font-medium">${p.sebab || '-'}</span>
+                        </div>
+                    `;
+                }
+
+                const tr = `
+                    <tr class="hover:bg-slate-50 transition text-slate-600">
+                        <td class="px-4 py-3 text-center font-bold text-slate-400">${index + 1}</td>
+                        <td class="px-4 py-3">
+                            <p class="font-bold text-slate-800 leading-tight">${p.nama}</p>
+                            <p class="text-[10px] text-slate-400 font-semibold">${p.jawatan}</p>
+                        </td>
+                        <td class="px-4 py-3 font-semibold text-slate-500">${p.sektor}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}">
+                                ${p.status === "Urusan Rasmi (Luar / Kursus / Bengkel / Mesyuarat)" ? "Urusan Rasmi" : p.status}
+                                ${p.jenisCuti && p.jenisCuti !== '-' ? `(${p.jenisCuti})` : ''}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">${details}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += tr;
+            });
+        }
+
+        // Ekspor Laporan xlsx Berdasarkan SheetJS
+        function exportReportToExcel() {
+            const type = document.getElementById('report-type').value;
+            const sector = document.getElementById('report-sektor').value;
+            const reportData = compileReportData();
+
+            if (reportData.length === 0) {
+                showToast("Laporan Kosong!", "Tiada rekod data dijumpai untuk kriteria ini bagi dieksport.", "error");
+                return;
+            }
+
+            let titleLabel = "LAPORAN KEBERADAAN PEGAWAI PPD YAN";
+            let subTitle = "";
+            let filePrefix = "Laporan";
+
+            if (type === 'harian') {
+                const hDate = document.getElementById('report-date-harian').value;
+                subTitle = `LAPORAN HARIAN PADA TARIKH: ${formatDate(hDate)}`;
+                filePrefix = `Laporan_Harian_${hDate}`;
+            } 
+            else if (type === 'mingguan') {
+                const s = document.getElementById('report-date-mula').value;
+                const e = document.getElementById('report-date-tamat').value;
+                subTitle = `LAPORAN MINGGUAN SEPANJANG TEMPOH: ${formatDate(s)} HINGGA ${formatDate(e)}`;
+                filePrefix = `Laporan_Mingguan_${s}_ke_${e}`;
+            } 
+            else if (type === 'bulanan') {
+                const m = parseInt(document.getElementById('report-bulan').value);
+                const y = document.getElementById('report-tahun').value;
+                const months = ["JANUARI", "FEBRUARI", "MAC", "APRIL", "MEI", "JUN", "JULAI", "OGOS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DISEMBER"];
+                subTitle = `LAPORAN BULANAN BAGI BULAN: ${months[m]} ${y}`;
+                filePrefix = `Laporan_Bulanan_${months[m]}_${y}`;
+            }
+
+            const rows = [
+                [titleLabel],
+                [subTitle],
+                [`Sektor Penapisan: ${sector === 'semua' ? 'SEMUA SEKTOR' : sector.toUpperCase()}`],
+                [`Tarikh Fail Dijana: ${formatDate(new Date().toISOString().split('T')[0])}`],
+                [], 
+                [
+                    "Bil.", 
+                    "Nama Pegawai", 
+                    "Jawatan", 
+                    "Sektor / Unit", 
+                    "Status Keberadaan", 
+                    "Jenis Cuti (Jika Cuti)", 
+                    "Lokasi Urusan/Bimbingan", 
+                    "Tarikh Mula", 
+                    "Tarikh Tamat", 
+                    "Tujuan / Catatan / Kenyataan"
+                ]
+            ];
+
+            reportData.forEach((p, index) => {
+                rows.push([
+                    index + 1,
+                    p.nama,
+                    p.jawatan,
+                    p.sektor,
+                    p.status,
+                    p.jenisCuti || "-",
+                    p.lokasi || "-",
+                    p.tarikhMula ? formatDate(p.tarikhMula) : "-",
+                    p.tarikhTamat ? formatDate(p.tarikhTamat) : "-",
+                    p.sebab || "-"
+                ]);
+            });
+
+            const worksheet = XLSX.utils.aoa_to_sheet(rows);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Keberadaan");
+
+            const columnWidths = [
+                { wch: 6 },   
+                { wch: 30 },  
+                { wch: 25 },  
+                { wch: 25 },  
+                { wch: 20 },  
+                { wch: 20 },  
+                { wch: 35 },  
+                { wch: 14 },  
+                { wch: 14 },  
+                { wch: 35 }   
+            ];
+            worksheet['!cols'] = columnWidths;
+
+            const filename = `${filePrefix}_PPD_Yan.xlsx`;
+            XLSX.writeFile(workbook, filename);
+
+            showToast("Berjaya Dijana!", "Fail Excel (.xlsx) laporan telah berjaya dimuat turun ke komputer anda.", "success");
+        }
+
+        // Utiliti pemotong nama singkatan huruf (Avatar)
+        function getInitials(name) {
+            const words = name.replace(/(bin|binti|a\/l|a\/p|hajah|haji|dr\.)\s+/gi, '').split(" ");
+            let initials = "";
+            for (let i = 0; i < Math.min(words.length, 2); i++) {
+                if (words[i].length > 0) initials += words[i][0].toUpperCase();
+            }
+            return initials || "P";
+        }
+
+        // Standardisasi tanggal ISO YYYY-MM-DD ke format DD/MM/YYYY
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            const d = new Date(dateString);
+            return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+        }
+
+        // Pemanggilan Kotak Toast Notifikasi Berjaya
+        function showToast(title, message, type = "success") {
+            const toast = document.getElementById('toast-success');
+            const toastTitle = document.getElementById('toast-title');
+            const toastMsg = document.getElementById('toast-msg');
+
+            toastTitle.innerText = title;
+            toastMsg.innerText = message;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(hideToast, 4000);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('toast-success');
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('translate-y-20', 'opacity-0');
+        }
+    </script>
+</body>
+</html>
